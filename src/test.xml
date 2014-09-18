@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+    <ActivationRsp>
+        <Req_DateTime>20140606135900</Req_DateTime>
+        <Ticket_Number>xM99TP10XGH12B</Ticket_Number>
+        <TWNLD_IMSI>466923303444775</TWNLD_IMSI>
+        <TWNLD_MSISDN>886988413856</TWNLD_MSISDN>
+        <S2T_IMSI>454120260200001</S2T_IMSI>
+         <Req_Status>18</Req_Status>
+         <VLN_Country>CHNA</VLN_Country>
+         <Addon_Service>
+              <Addon_Item>
+                  <Addon_Code>SX001</Addon_Code>
+                  <Addon_Action>D</Addon_Action>
+               </Addon_Item>
+               <Addon_Item>
+                  <Addon_Code>SX002</Addon_Code>
+                  <Addon_Action>A</Addon_Action>
+               </Addon_Item>
+          </Addon_Service>
+     </ActivationRsp>
