@@ -1706,12 +1706,17 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 	       
 	       //20140919 Add 
 	       Query_GPRSStatus(); //query GPRS Status store in cGPRS
-	       if(cGPRS.equals("0") && cAddonAction.equals("A")){//if GPRS is disable and action is "Add"
+	       if(cGPRS.equals("0") && cAddonAction.equals("A")){//if GPRS is enable and action is "Add"
+	    	   
+	    	   logger.info("Running Req17 after Req18 to enable GPRS...");
+	    	   
 	    	   cGPRSStatus="1";		//Set Request GPRSStatus is 1
 	    	   cReqStatus = "17";	//Set Request Status is 17
 		       ReqStatus_17(outA);	//
 		       ReRunStatus_17(outA);
-	       }else if(cGPRS.equals("1") && cAddonAction.equals("D")){//if GPRS is enable and action is "Delete"
+	       }else if(cGPRS.equals("1") && cAddonAction.equals("D")){//if GPRS is disable and action is "Delete"
+	    	   logger.info("Running Req17 after Req18 to disable GPRS...");
+	    	   
 	    	   cGPRSStatus="0";		//Set Request GPRSStatus is 0
 	    	   cReqStatus = "17";	//Set Request Status is 17
 		       ReqStatus_17(outA);	//
@@ -3584,8 +3589,10 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
                     "<br>Return_Code:"+cRCode+
                     "<br>Description:"+desc;
       //20140919 Add Record Error SQL
-      if(!"".equals(sErrorSQL))
+      if(!"".equals(sErrorSQL)){
     	  SmessageText+="<br>Exception by SQL : "+sErrorSQL;
+    	  logger.info("Add Error SQL on mail message:"+sErrorSQL);
+      }
       
         s2t.SendAlertMail(Smailserver, SFrom, Sto, SSubject, SmessageText);
          logger.info("Send Mail");}
@@ -3650,6 +3657,7 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
                            
                            //20140919 Add 讀取到SX000時不取資料
                            if("SX000".equalsIgnoreCase(((Node)codeNodeList.item(0)).getNodeValue().trim())){
+                        	   logger.info("Give up SX000 Data...");
                         	   cAddonCode="";
                         	   continue;
                            }
