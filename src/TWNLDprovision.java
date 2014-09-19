@@ -201,10 +201,6 @@ public class TWNLDprovision extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
     throws ServletException, IOException, SQLException, InterruptedException, Exception {
     	
-    	//這段會產生error，用途未知 20140918
-    	/*logger.info("The received XML content: " + "\n");
-    	logger.info(request.getReader().readLine());*/
-    	
         response.setContentType("text/html;charset=UTF-8");
         PrintWriter out = response.getWriter();
         //synchronized 同步程式區塊可以避免多位使用者同時存取實例變數
@@ -246,6 +242,10 @@ public class TWNLDprovision extends HttpServlet {
 		/*********************************************************/
         
         Load_Properties(out,getServletContext().getRealPath("/"));
+        
+        logger.info("The received XML content: " + "\n");
+    	logger.info(request.getReader().readLine());
+    	
         logger.info("Procedure Start");
         
         out.println("<?xml version='1.0' encoding='UTF-8'?>");
@@ -1671,18 +1671,18 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 	       }
 
 	       if(cAddonAction.equals("A")) {
-	          VARREALMSG = "《開通通知簡訊》 "; 
+	          /*VARREALMSG = "《開通通知簡訊》 "; 
 	          VARREALMSG += PACKAGE + " -->";
 	          VARREALMSG += "addon_code=\'" + cAddonCode + "\'";
-	          VARREALMSG += " and addon_action=\'" + cAddonAction + "\'";
+	          VARREALMSG += " and addon_action=\'" + cAddonAction + "\'";*/
               VARREALMSG += "親愛的中華電信用戶，您加選的環球卡" + PACKAGE; 
               VARREALMSG += "月租服務已經開通囉，優惠期間每月只要" + PAYMENT;
 	          VARREALMSG += "提醒您手機須先將數據漫遊功能開啟，並請在網路的APN欄位輸入\"CMHK\"。環球卡感謝您！";
  	       } else {
-              VARREALMSG = "《退租通知簡訊》"; 
+              /*VARREALMSG = "《退租通知簡訊》"; 
               VARREALMSG += PACKAGE + " -->";
 	          VARREALMSG += "addon_code=\'" + cAddonCode + "\'";
-	          VARREALMSG += " and addon_action=\'" + cAddonAction + "\'";
+	          VARREALMSG += " and addon_action=\'" + cAddonAction + "\'";*/
 	          VARREALMSG += "《溫馨提醒》親愛的環球卡用戶，您所選的" + PACKAGE;
               VARREALMSG += "服務已經依您選擇完成退租。日後如有需要歡迎隨時加選。環球卡感謝您！";
 	       }
@@ -3645,6 +3645,7 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
             }
             
             logger.info("Tag:" + Sparam);
+            
     }
 
     public void send_SMS(String VARREALMSG1){
