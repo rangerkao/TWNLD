@@ -85,6 +85,12 @@ public class TWNLDprovision extends HttpServlet {
     int i,n=0,y,l,f,iVLN,iError=0,iCut=0,iCountA=0;
     boolean  ba,bb,bc,bd,sessionDebug = true;
     public java.util.Properties props = System.getProperties();
+    
+    
+    //20140919 Add RecordErrorSQL
+    String sErrorSQL="";
+    
+    
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
      * @param request servlet request
@@ -189,6 +195,7 @@ public class TWNLDprovision extends HttpServlet {
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			sErrorSQL+=sSql;
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -417,6 +424,7 @@ public class TWNLDprovision extends HttpServlet {
            sSql="update PROVLOG set javaerrmsg='"+s.toString()+"' where LOGID="+
                    sCMHKLOGID;
            s2t.Update(sSql);
+        sErrorSQL+=sSql;
         Query_PreProcessResult(out,"600");
     }
     catch(Exception ex){
@@ -1696,10 +1704,24 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 	       /* sSql = "update XXX set XXX ='" + cAddonAction + "' where XXX = ''";   ****/
 	       /***********************************************************/
 	       
-	       cReqStatus = "17";
-	       ReqStatus_17(outA);
-	       ReRunStatus_17(outA);
+	       //20140919 Add 
+	       Query_GPRSStatus(); //query GPRS Status store in cGPRS
+	       if(cGPRS.equals("0") && cAddonAction.equals("A")){//if GPRS is disable and action is "Add"
+	    	   cGPRSStatus="1";		//Set Request GPRSStatus is 1
+	    	   cReqStatus = "17";	//Set Request Status is 17
+		       ReqStatus_17(outA);	//
+		       ReRunStatus_17(outA);
+	       }else if(cGPRS.equals("1") && cAddonAction.equals("D")){//if GPRS is enable and action is "Delete"
+	    	   cGPRSStatus="0";		//Set Request GPRSStatus is 0
+	    	   cReqStatus = "17";	//Set Request Status is 17
+		       ReqStatus_17(outA);	//
+		       ReRunStatus_17(outA);
+	       }
 	       
+	       /*cReqStatus = "17";
+	       ReqStatus_17(outA);	
+	       ReRunStatus_17(outA);*/
+
         }
 
                 
@@ -1910,6 +1932,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
                 Process_SyncFileDtl(sWSFDStatus);
             } catch (SQLException ex) {
                 java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+                sErrorSQL+=sSql;
             } catch (Exception ex) {
                 java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
             }
@@ -3560,6 +3583,10 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
                     "<br>GPRS_Status="+cGPRS+
                     "<br>Return_Code:"+cRCode+
                     "<br>Description:"+desc;
+      //20140919 Add Record Error SQL
+      if(!"".equals(sErrorSQL))
+    	  SmessageText+="<br>Exception by SQL : "+sErrorSQL;
+      
         s2t.SendAlertMail(Smailserver, SFrom, Sto, SSubject, SmessageText);
          logger.info("Send Mail");}
       catch(Exception ex){
@@ -3615,10 +3642,18 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
                     	Node itemNode = nodes.item(0);
 
                     	if(itemNode.getNodeType() == Node.ELEMENT_NODE) {
+                    		
                            Element first = (Element)itemNode;
                     	   NodeList codeNode = first.getElementsByTagName("Addon_Code");
                            Element codeElement = (Element)codeNode.item(0);
                            NodeList codeNodeList = codeElement.getChildNodes();
+                           
+                           //20140919 Add 讀取到SX000時不取資料
+                           if("SX000".equalsIgnoreCase(((Node)codeNodeList.item(0)).getNodeValue().trim())){
+                        	   cAddonCode="";
+                        	   continue;
+                           }
+
                            cAddonCode = ((Node)codeNodeList.item(0)).getNodeValue().trim();
                            Sparam = Sparam + "," + codeNode.item(0).getNodeName() + "=" + cAddonCode;
 
@@ -3664,6 +3699,7 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
             s2t.Inster(sSql);
         } catch (SQLException ex) {
             java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            sErrorSQL+=sSql;
         } catch (UnsupportedEncodingException ex) {
             java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
@@ -3684,6 +3720,7 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
             s2t.Inster(sSql);
         } catch (SQLException ex) {
             java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            sErrorSQL+=sSql;
         } catch (UnsupportedEncodingException ex) {
             java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
@@ -3848,6 +3885,7 @@ public String Check_TWN_Msisdn_Status(String TWNImsiA,String S2TImsiA) throws SQ
             processRequest(request, response);
         } catch (SQLException ex) {
             java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            sErrorSQL+=sSql;
         } catch (InterruptedException ex) {
             java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (Exception ex) {
@@ -3869,6 +3907,7 @@ public String Check_TWN_Msisdn_Status(String TWNImsiA,String S2TImsiA) throws SQ
             processRequest(request, response);
         } catch (SQLException ex) {
             java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            sErrorSQL+=sSql;
         } catch (InterruptedException ex) {
             java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (Exception ex) {
