@@ -250,8 +250,11 @@ public class TWNLDprovision extends HttpServlet {
         
         Load_Properties(out,getServletContext().getRealPath("/"));
         
-        logger.info("The received XML content: " + "\n");
-    	logger.info(request.getReader().readLine());
+        
+        logger.info("The received XML content: ");
+    	logger.info(request.getReader().readLine()); 
+    	
+    	request.getReader().reset();
     	
         logger.info("Procedure Start");
         
