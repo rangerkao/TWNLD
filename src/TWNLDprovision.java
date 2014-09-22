@@ -41,6 +41,12 @@ import javax.servlet.*;
 import javax.servlet.http.*;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -204,6 +210,16 @@ public class TWNLDprovision extends HttpServlet {
 			e.printStackTrace();
 		}
     }
+    
+    private String parseDocumentToXML(Document doc) throws TransformerException{
+    	DOMSource domSource = new DOMSource(doc);
+    	StringWriter writer = new StringWriter();
+    	StreamResult result = new StreamResult(writer);
+    	TransformerFactory tf = TransformerFactory.newInstance();
+    	Transformer transformer = tf.newTransformer();
+    	transformer.transform(domSource, result);
+    	return writer.toString();
+    }
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
     throws ServletException, IOException, SQLException, InterruptedException, Exception {
@@ -251,10 +267,12 @@ public class TWNLDprovision extends HttpServlet {
         Load_Properties(out,getServletContext().getRealPath("/"));
         
         
-        logger.info("The received XML content: ");
+        /*logger.info("The received XML content: ");
     	logger.info(request.getReader().readLine()); 
     	
     	request.getReader().reset();
+    	logger.info("request.getReader().reset()");*/
+    	
     	
         logger.info("Procedure Start");
         
@@ -272,7 +290,9 @@ public class TWNLDprovision extends HttpServlet {
             //Document doc1 = builder.parse(new File("C://Users/Administrator/workspace/TWNLD/src/test.xml"));
             //************************************************************************************************
             
-			
+            logger.info("The received XML content: ");
+        	logger.info(parseDocumentToXML(doc1)); 
+        	
             doc1.normalize();
             read_xml(doc1);
             
