@@ -94,7 +94,7 @@ public class TWNLDprovision extends HttpServlet {
     
     
     //20140919 Add RecordErrorSQL
-    String sErrorSQL="";
+    String sErrorSQL="",iErrorMsg="";
     
     
     /**
@@ -343,7 +343,12 @@ public class TWNLDprovision extends HttpServlet {
                          case 18:
                          {
                         	 Query_AddonStatus(out, doc1);
-                	         ReqStatus_18(out);	
+                        	 if(!"".equals(cAddonCode)&& !"".equals(cAddonAction)){
+                        		 ReqStatus_18(out);	
+                        	 }else{
+                        		 logger.debug("AddonCode or AddonAction is ineffective!");
+                        		 Query_PreProcessResult(out,"000");
+                        	 }
                          }
                            break;//}
                          case 19:
@@ -371,6 +376,11 @@ public class TWNLDprovision extends HttpServlet {
            // else {iError=1;}
                          default:  
                         	 iError=1;
+                        	 
+                        	 if("".endsWith(iErrorMsg))
+                        		 iErrorMsg+=",";
+                        	 iErrorMsg+="ReqStatus is incorrect!";
+                        	 
                         	 break;
                       }
         //}else {Query_PreProcessResult(out,"402");}
@@ -408,12 +418,23 @@ public class TWNLDprovision extends HttpServlet {
                   ReRunStatus_17(out);
                   break;
                 case 18:
-                  ReRunStatus_18(out);
+                	if(!"".equals(cAddonCode)&& !"".equals(cAddonAction)){
+                		ReRunStatus_18(out);
+                	}else{
+                		Query_PreProcessResult(out,"000");
+                		logger.debug("AddonCode or AddonAction is ineffective!");
+                	}
+                		
                   break;
                 case 99:
                   ReRunStatus_99(out);
                   break;
-                default:  iError=1;
+                default:  
+							iError = 1;
+
+							if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "ReqStatus is incorrect!";
              }
               logger.info("iError:"+iError+",cRCode:"+cRCode);
               if ((iError==0)&&(cRCode.equals("000"))){
@@ -550,17 +571,31 @@ public class TWNLDprovision extends HttpServlet {
                         else
                         {Query_PreProcessResult(out0,"402");}
                     }
-                    else {iError=1;
-                      Query_PreProcessResult(out0,"203");}
+                    else {
+                    	iError = 1;
+                    	Query_PreProcessResult(out0, "203");
+                    	if ("".endsWith(iErrorMsg))
+                    		iErrorMsg += ",";
+                    	iErrorMsg += "Error Code 203!";
+                    	}
                   } else {iError=1;
-                      Query_PreProcessResult(out0,"109");}
+                      Query_PreProcessResult(out0,"109");
+                      if ("".endsWith(iErrorMsg))
+                    	  iErrorMsg += ",";
+                      iErrorMsg += "Error Code 109!";}
                 } else {
                 iError=1;
-                Query_PreProcessResult(out0,"108");}
+                Query_PreProcessResult(out0,"108");
+                if ("".endsWith(iErrorMsg))
+					iErrorMsg += ",";
+				iErrorMsg += "Error Code 108!";}
                 }
            else{
                 iError=1;
-                Query_PreProcessResult(out0,"107");}
+                Query_PreProcessResult(out0,"107");
+                if ("".endsWith(iErrorMsg))
+					iErrorMsg += ",";
+				iErrorMsg += "Error Code 107!";}
                 }else {Query_PreProcessResult(out0,"112");}
                 }else{Query_PreProcessResult(out0,"111");}
     }
@@ -673,11 +708,17 @@ public class TWNLDprovision extends HttpServlet {
                     case 3:
                         iError=1;
                         Query_PreProcessResult(out1,"206");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 206!";
                         break;
                     case 4:
                     case 10:
                         iError=1;
                         Query_PreProcessResult(out1,"201");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 201!";
                         break;
                     default:
                        //Check S2T IMSI
@@ -704,14 +745,23 @@ public class TWNLDprovision extends HttpServlet {
                           else {Query_PreProcessResult(out1,"211");}
                           }
                           else {iError=1;
-                         Query_PreProcessResult(out1,"108");}
+                         Query_PreProcessResult(out1,"108");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 108!";}
                         }
                         else {iError=1;
-                         Query_PreProcessResult(out1,"109");}
+                         Query_PreProcessResult(out1,"109");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 109!";}
                       }
                       else {
                         iError=1;
-                        Query_PreProcessResult(out1,"101");}
+                        Query_PreProcessResult(out1,"101");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 101!";}
                         break;
                 }
                 }else {Query_PreProcessResult(out1,"211");}
@@ -733,11 +783,17 @@ public class TWNLDprovision extends HttpServlet {
                     case 3:
                         iError=1;
                         Query_PreProcessResult(reout1,"206");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 206!";
                         break;
                     case 4:
                     case 10:
                         iError=1;
                         Query_PreProcessResult(reout1,"201");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 201!";
                         break;
                     default:
                        //Check S2T IMSI
@@ -774,14 +830,23 @@ public class TWNLDprovision extends HttpServlet {
                           else {Query_PreProcessResult(reout1,"211");}
                           }
                           else {iError=1;
-                         Query_PreProcessResult(reout1,"108");}
+                         Query_PreProcessResult(reout1,"108");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 108!";}
                         }
                         else {iError=1;
-                         Query_PreProcessResult(reout1,"109");}
+                         Query_PreProcessResult(reout1,"109");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 109!";}
                       }
                       else {
                         iError=1;
-                        Query_PreProcessResult(reout1,"101");}
+                        Query_PreProcessResult(reout1,"101");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 101!";}
                         break;
                 }
                 }else {Query_PreProcessResult(reout1,"211");}
@@ -802,11 +867,17 @@ public class TWNLDprovision extends HttpServlet {
                     case 1:
                         iError=1;
                         Query_PreProcessResult(out2,"207");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 207!";
                         break;
                     case 4:
                     case 10:
                         iError=1;
                         Query_PreProcessResult(out2,"201");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 201!";
                         break;
                     default:
                         //Check S2T IMSI
@@ -833,14 +904,23 @@ public class TWNLDprovision extends HttpServlet {
                           else {Query_PreProcessResult(out2,"211");}
                           }
                           else {iError=1;
-                         Query_PreProcessResult(out2,"108");}
+                         Query_PreProcessResult(out2,"108");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 108!";}
                         }
                         else {iError=1;
-                         Query_PreProcessResult(out2,"109");}
+                         Query_PreProcessResult(out2,"109");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 109!";}
                       }
                       else {
                         iError=1;
-                        Query_PreProcessResult(out2,"101");}
+                        Query_PreProcessResult(out2,"101");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 101!";}
                         break;
                 }
                 }else {Query_PreProcessResult(out2,"211");}
@@ -862,11 +942,17 @@ public class TWNLDprovision extends HttpServlet {
                     case 1:
                         iError=1;
                         Query_PreProcessResult(out2,"207");
+                        if ("".endsWith(iErrorMsg))
+									iErrorMsg += ",";
+								iErrorMsg += "Error Code 207!";
                         break;
                     case 4:
                     case 10:
                         iError=1;
                         Query_PreProcessResult(out2,"201");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 201!";
                         break;
                     default:
                         //Check S2T IMSI
@@ -902,14 +988,23 @@ public class TWNLDprovision extends HttpServlet {
                           else {Query_PreProcessResult(out2,"211");}
                           }
                           else {iError=1;
-                         Query_PreProcessResult(out2,"108");}
+                         Query_PreProcessResult(out2,"108");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 108!";}
                         }
                         else {iError=1;
-                         Query_PreProcessResult(out2,"109");}
+                         Query_PreProcessResult(out2,"109");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 109!";}
                       }
                       else {
                         iError=1;
-                        Query_PreProcessResult(out2,"101");}
+                        Query_PreProcessResult(out2,"101");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 101!";}
                         break;
                 }
                 }else {Query_PreProcessResult(out2,"211");}
@@ -976,14 +1071,23 @@ public class TWNLDprovision extends HttpServlet {
                           else{Query_PreProcessResult(out3,"211");}
                           }
                         else {iError=1;
-                         Query_PreProcessResult(out3,"200");}
+                         Query_PreProcessResult(out3,"200");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 200!";}
                         }
                         else {iError=1;
-                         Query_PreProcessResult(out3,"109");}
+                         Query_PreProcessResult(out3,"109");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 109!";}
                       }
                       else {
                         iError=1;
-                        Query_PreProcessResult(out3,"108");}
+                        Query_PreProcessResult(out3,"108");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 108!";}
                 //}else{Query_PreProcessResult(out3,"211");}
                 }else{Query_PreProcessResult(out3,"111");}
     }
@@ -1057,14 +1161,23 @@ public class TWNLDprovision extends HttpServlet {
                           else{Query_PreProcessResult(out3,"211");}
                           }
                         else {iError=1;
-                         Query_PreProcessResult(out3,"200");}
+                         Query_PreProcessResult(out3,"200");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 200!";}
                         }
                         else {iError=1;
-                         Query_PreProcessResult(out3,"109");}
+                         Query_PreProcessResult(out3,"109");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 109!";}
                       }
                       else {
                         iError=1;
-                        Query_PreProcessResult(out3,"108");}
+                        Query_PreProcessResult(out3,"108");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 108!";}
                 //}else{Query_PreProcessResult(out3,"111");}
                 }else{Query_PreProcessResult(out3,"111");}
     }
@@ -1112,14 +1225,23 @@ public class TWNLDprovision extends HttpServlet {
                           else {Query_PreProcessResult(out5,"210");}
                           }
                         else {iError=1;
-                         Query_PreProcessResult(out5,"108");}
+                         Query_PreProcessResult(out5,"108");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 108!";}
                         }else {Query_PreProcessResult(out5,"211");}
                         }else {iError=1;
-                         Query_PreProcessResult(out5,"109");}
+                         Query_PreProcessResult(out5,"109");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 109!";}
                       }
                       else {
                         iError=1;
-                        Query_PreProcessResult(out5,"101");}
+                        Query_PreProcessResult(out5,"101");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 101!";}
                 //}else{Query_PreProcessResult(out5,"111");}
                 }else{Query_PreProcessResult(out5,"111");}
     }
@@ -1176,14 +1298,23 @@ public class TWNLDprovision extends HttpServlet {
                           else {Query_PreProcessResult(out5,"210");}
                           }
                         else {iError=1;
-                         Query_PreProcessResult(out5,"108");}
+                         Query_PreProcessResult(out5,"108");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 108!";}
                         }else {Query_PreProcessResult(out5,"211");}
                         }else {iError=1;
-                         Query_PreProcessResult(out5,"109");}
+                         Query_PreProcessResult(out5,"109");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 109!";}
                       }
                       else {
                         iError=1;
-                        Query_PreProcessResult(out5,"101");}
+                        Query_PreProcessResult(out5,"101");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 101!";}
                 //}else{Query_PreProcessResult(out5,"111");}
                 }else{Query_PreProcessResult(out5,"111");}
     }
@@ -1231,14 +1362,23 @@ public class TWNLDprovision extends HttpServlet {
                    else if (sError.equals("331")){Query_PreProcessResult(out7,"331");}
                  }else {Query_PreProcessResult(out7,"211");}}
               else {iError=1;
-                         Query_PreProcessResult(out7,"108");}
+                         Query_PreProcessResult(out7,"108");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 108!";}
               }
                         else {iError=1;
-                         Query_PreProcessResult(out7,"109");}
+                         Query_PreProcessResult(out7,"109");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 109!";}
                       }
                       else {
                         iError=1;
-                        Query_PreProcessResult(out7,"101");}
+                        Query_PreProcessResult(out7,"101");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 101!";}
                 }else{Query_PreProcessResult(out7,"211");}
                 }else{Query_PreProcessResult(out7,"111");}
     }
@@ -1294,14 +1434,23 @@ public class TWNLDprovision extends HttpServlet {
                    //else if (sError.equals("331")){Query_PreProcessResult(out7,"331");}
                  }else {Query_PreProcessResult(out7,"211");}}
               else {iError=1;
-                         Query_PreProcessResult(out7,"108");}
+                         Query_PreProcessResult(out7,"108");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 108!";}
               }
                         else {iError=1;
-                         Query_PreProcessResult(out7,"109");}
+                         Query_PreProcessResult(out7,"109");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 109!";}
                       }
                       else {
                         iError=1;
-                        Query_PreProcessResult(out7,"101");}
+                        Query_PreProcessResult(out7,"101");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 101!";}
                 }else{Query_PreProcessResult(out7,"211");}
                 }else{Query_PreProcessResult(out7,"111");}
     }
@@ -1310,6 +1459,7 @@ public class TWNLDprovision extends HttpServlet {
     
     public void ReqStatus_17(PrintWriter out17) throws SQLException, IOException, ClassNotFoundException, Exception{
       //else if (cReqStatus.equals("17")){
+    	logger.debug("ReqStatus_17");
             csta=Check_Pair_IMSI(cTWNLDIMSI,cS2TIMSI);
                 if (csta.equals("1")){
                   csta="";
@@ -1327,39 +1477,57 @@ public class TWNLDprovision extends HttpServlet {
                         if (bc==true){
                           Get_GurrentS2TMSISDN();
                           if (!cS2TMSISDN.equals("")){
-                            Check_Type_Code_87_MAP_VALUE(cS2TMSISDN);
-                            sWSFStatus="V";
-                             sWSFDStatus="V";
-                            Process_SyncFile(sWSFStatus);
-                            Process_SyncFileDtl(sWSFDStatus);
-                            Process_ServiceOrder();
-                            //Process_WorkSubcode();
-                            Process_WorkSubcode_05_17(cS2TIMSI,cTWNLDIMSI,cReqStatus,cTWNLDMSISDN);
-                       sSql="update S2T_TB_SERVICE_ORDER set STATUS='N' where "+
-                               "SERVICE_ORDER_NBR='"+cServiceOrderNBR+"'";
-                       s2t.Update(sSql);
-                       logger.debug("update SERVICE_ORDER:"+sSql);
-                            Query_PreProcessResult(out17,"000");
-                            Query_GPRSStatus();
+                        	  ReqStatus_17_Act(out17);
                           }
                         else {iError=1;
-                         Query_PreProcessResult(out17,"108");}
+                         Query_PreProcessResult(out17,"108");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 108!";}
                         }
                         else {iError=1;
-                         Query_PreProcessResult(out17,"109");}
+                         Query_PreProcessResult(out17,"109");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 109!";}
                       }
                       else {
                         iError=1;
-                        Query_PreProcessResult(out17,"101");}}
+                        Query_PreProcessResult(out17,"101");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 101!";}}
                         break;
                     case 107:
                         iError=1;
                         Query_PreProcessResult(out17,"107");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 107!";
                         break;
                     default:
                         break;}
                 }else{Query_PreProcessResult(out17,"211");}
                 }else{Query_PreProcessResult(out17,"111");}
+    }
+    
+    public void ReqStatus_17_Act(PrintWriter out17) throws SQLException, IOException, ClassNotFoundException, Exception{
+    	logger.debug("ReqStatus_17_Act");
+    	
+	    	Check_Type_Code_87_MAP_VALUE(cS2TMSISDN);
+	        sWSFStatus="V";
+	        sWSFDStatus="V";
+	        Process_SyncFile(sWSFStatus);
+	        Process_SyncFileDtl(sWSFDStatus);
+	        Process_ServiceOrder();
+	        //Process_WorkSubcode();
+	        Process_WorkSubcode_05_17(cS2TIMSI,cTWNLDIMSI,cReqStatus,cTWNLDMSISDN);
+	        sSql="update S2T_TB_SERVICE_ORDER set STATUS='N' where "+
+	        		"SERVICE_ORDER_NBR='"+cServiceOrderNBR+"'";
+	        s2t.Update(sSql);
+	        logger.debug("update SERVICE_ORDER:"+sSql);
+	        Query_PreProcessResult(out17,"000");
+	        Query_GPRSStatus();
     }
 
     public void ReRunStatus_17(PrintWriter out17) throws SQLException, IOException, ClassNotFoundException, Exception{
@@ -1386,44 +1554,62 @@ public class TWNLDprovision extends HttpServlet {
                             TempSparam=Sparam.substring(iCut+1, Sparam.length());
                             iCountA=Check_Tag(TempSparam);
                              if (iCountA>1){
-                               Find_Old_ORDER_NBR();
-                               Find_Old_step_no();
-                             //if (!sOld_step_no.equals("0")){
-                            Check_Type_Code_87_MAP_VALUE(cS2TMSISDN);
-                            sWSFStatus="V";
-                             sWSFDStatus="V";
-                            Process_SyncFile(sWSFStatus);
-                            Process_SyncFileDtl(sWSFDStatus);
-                            Process_ServiceOrder();
-                            //reProcess_WorkSubcode(sOld_step_no);
-                            reProcess_WorkSubcode_05_17(cTWNLDIMSI,cS2TIMSI,sOld_step_no,cReqStatus,cTWNLDMSISDN);
-                       sSql="update S2T_TB_SERVICE_ORDER set STATUS='N' where "+
-                               "SERVICE_ORDER_NBR='"+cServiceOrderNBR+"'";
-                       s2t.Update(sSql);
-                       logger.debug("update SERVICE_ORDER:"+sSql);
-                            Query_PreProcessResult(out17,"000");
-                            Query_GPRSStatus();
-                          Query_PreProcessResult(out17,"000");}//}
+                            	 ReRunStatus_17_Act(out17);
+                               }//}
                           else{Query_PreProcessResult(out17,"201");}
                              }
                         else {iError=1;
-                         Query_PreProcessResult(out17,"108");}
+                         Query_PreProcessResult(out17,"108");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 108!";}
                         }
                         else {iError=1;
-                         Query_PreProcessResult(out17,"109");}
+                         Query_PreProcessResult(out17,"109");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 109!";}
                       }
                       else {
                         iError=1;
-                        Query_PreProcessResult(out17,"101");}}
+                        Query_PreProcessResult(out17,"101");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 101!";}}
                         break;
                     case 107:
                         iError=1;
                         Query_PreProcessResult(out17,"107");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 107!";
                         break;
                     default:
                         break;}
                 }else{Query_PreProcessResult(out17,"211");}
                 }else{Query_PreProcessResult(out17,"111");}
+    }
+    public void ReRunStatus_17_Act(PrintWriter out17)throws SQLException, IOException, ClassNotFoundException, Exception{
+    	logger.debug("ReRunStatus_17_Act");
+    	
+	    	Find_Old_ORDER_NBR();
+	        Find_Old_step_no();
+	        //if (!sOld_step_no.equals("0")){
+	        Check_Type_Code_87_MAP_VALUE(cS2TMSISDN);
+	        sWSFStatus="V";
+	        sWSFDStatus="V";
+	        Process_SyncFile(sWSFStatus);
+	        Process_SyncFileDtl(sWSFDStatus);
+	        Process_ServiceOrder();
+	        //reProcess_WorkSubcode(sOld_step_no);
+	        reProcess_WorkSubcode_05_17(cTWNLDIMSI,cS2TIMSI,sOld_step_no,cReqStatus,cTWNLDMSISDN);
+	        sSql="update S2T_TB_SERVICE_ORDER set STATUS='N' where "+
+	        		"SERVICE_ORDER_NBR='"+cServiceOrderNBR+"'";
+	        s2t.Update(sSql);
+	        logger.debug("update SERVICE_ORDER:"+sSql);
+	        Query_PreProcessResult(out17,"000");
+	        Query_GPRSStatus();
+	        Query_PreProcessResult(out17,"000");
     }
     
     public void ReqStatus_18(PrintWriter out18) throws SQLException, IOException, ClassNotFoundException, Exception {
@@ -1473,22 +1659,33 @@ public class TWNLDprovision extends HttpServlet {
                 			   } else {
                 				   iError = 1;
                                    Query_PreProcessResult(out18,"108");
+                                   if ("".endsWith(iErrorMsg))
+   									iErrorMsg += ",";
+   								iErrorMsg += "Error Code 108!";
                 			   }
                 			   
                 		   } else {
                 			   iError = 1;
                                Query_PreProcessResult(out18,"109");
+                               if ("".endsWith(iErrorMsg))
+									iErrorMsg += ",";
+								iErrorMsg += "Error Code 109!";
                 		   }
                 	   } else {
                 		   iError = 1;
                            Query_PreProcessResult(out18,"101");
+                           if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 101!";
                 	   }
                    }
                    break;
                    case 107:
                       iError=1;
                       Query_PreProcessResult(out18,"107");
-                        
+                      if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 107!";
                    break;
                    default:
                    break;
@@ -1503,7 +1700,7 @@ public class TWNLDprovision extends HttpServlet {
     }
     
 public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, ClassNotFoundException, Exception {
-	logger.debug("ReRunStatus_07");
+	logger.debug("ReRunStatus_18");
 	
     csta = Check_Pair_IMSI(cTWNLDIMSI,cS2TIMSI);
         
@@ -1570,13 +1767,22 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
             		} else {
             			iError = 1;
             			Query_PreProcessResult(out18,"108");
+            			if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 108!";
             		}
             	} else {
             		iError = 1;
-                    Query_PreProcessResult(out18,"109");}
+                    Query_PreProcessResult(out18,"109");
+                    if ("".endsWith(iErrorMsg))
+						iErrorMsg += ",";
+					iErrorMsg += "Error Code 109!";}
               	} else {
               		iError=1;
               		Query_PreProcessResult(out18,"101");
+              		if ("".endsWith(iErrorMsg))
+						iErrorMsg += ",";
+					iErrorMsg += "Error Code 101!";
               	}
         	} else {
         		Query_PreProcessResult(out18,"211");
@@ -1621,14 +1827,23 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
                           else {Query_PreProcessResult(out99,"211");}
                           }
                         else {iError=1;
-                         Query_PreProcessResult(out99,"108");}
+                         Query_PreProcessResult(out99,"108");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 108!";}
                         }
                         else {iError=1;
-                         Query_PreProcessResult(out99,"109");}
+                         Query_PreProcessResult(out99,"109");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 109!";}
                       }
                       else {
                         iError=1;
-                        Query_PreProcessResult(out99,"101");}
+                        Query_PreProcessResult(out99,"101");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 101!";}
                       }else{Query_PreProcessResult(out99,"211");}
                       }else{Query_PreProcessResult(out99,"111");}
     }
@@ -1674,14 +1889,23 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
                           else {Query_PreProcessResult(out99,"211");}
                           }
                         else {iError=1;
-                         Query_PreProcessResult(out99,"108");}
+                         Query_PreProcessResult(out99,"108");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 108!";}
                         }
                         else {iError=1;
-                         Query_PreProcessResult(out99,"109");}
+                         Query_PreProcessResult(out99,"109");
+                         if ("".endsWith(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "Error Code 109!";}
                       }
                       else {
                         iError=1;
-                        Query_PreProcessResult(out99,"101");}
+                        Query_PreProcessResult(out99,"101");
+                        if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "Error Code 101!";}
                       }else{Query_PreProcessResult(out99,"211");}
                       }else{Query_PreProcessResult(out99,"111");}
     }
@@ -1735,15 +1959,15 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 	    	   
 	    	   cGPRSStatus="1";		//Set Request GPRSStatus is 1
 	    	   cReqStatus = "17";	//Set Request Status is 17
-		       ReqStatus_17(outA);	//
-		       ReRunStatus_17(outA);
+		       ReqStatus_17_Act(outA);	//
+		       ReRunStatus_17_Act(outA);
 	       }else if(cGPRS.equals("1") && cAddonAction.equals("D")){//if GPRS is disable and action is "Delete"
 	    	   logger.info("Running Req17 after Req18 to disable GPRS...");
 	    	   
 	    	   cGPRSStatus="0";		//Set Request GPRSStatus is 0
 	    	   cReqStatus = "17";	//Set Request Status is 17
-		       ReqStatus_17(outA);	//
-		       ReRunStatus_17(outA);
+		       ReqStatus_17_Act(outA);	//
+		       ReRunStatus_17_Act(outA);
 	       }
 	       
 	       /*cReqStatus = "17";
@@ -3607,10 +3831,15 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
                     "<br>TWNLD_MSISDN=" +cTWNLDMSISDN+
                     "<br>S2T_IMSI=" +cS2TIMSI+
                     "<br>Req_Status=" +cReqStatus+
-                    "<br>VLN_Country="+sAllVln+
+                    "<br>VLN_Country="+cVLNCountry+
                     "<br>GPRS_Status="+cGPRS+
                     "<br>Return_Code:"+cRCode+
-                    "<br>Description:"+desc;
+                    "<br>Description:"+desc+
+                    "<br>Addon_Code:"+cAddonCode+
+                    "<br>Addon_Action:"+cAddonAction+
+                    "<br><br>iError Tag:"+iError+
+                    "<br>iError_Message:"+iErrorMsg;
+      				
       //20140919 Add Record Error SQL
       if(!"".equals(sErrorSQL)){
     	  SmessageText+="<br>Exception by SQL : "+sErrorSQL;
@@ -3618,7 +3847,7 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
       }
       
         s2t.SendAlertMail(Smailserver, SFrom, Sto, SSubject, SmessageText);
-         logger.info("Send Mail");}
+         logger.info("Send Mail Content:"+SmessageText);}
       catch(Exception ex){
         logger.error("JAVA Error:"+ex.toString());}
     }
