@@ -1960,14 +1960,14 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 	    	   cGPRSStatus="1";		//Set Request GPRSStatus is 1
 	    	   cReqStatus = "17";	//Set Request Status is 17
 		       ReqStatus_17_Act(outA);	//
-		       ReRunStatus_17_Act(outA);
+		       //ReRunStatus_17_Act(outA); //20140924 決定不呼叫
 	       }else if(cGPRS.equals("1") && cAddonAction.equals("D")){//if GPRS is disable and action is "Delete"
 	    	   logger.info("Running Req17 after Req18 to disable GPRS...");
 	    	   
 	    	   cGPRSStatus="0";		//Set Request GPRSStatus is 0
 	    	   cReqStatus = "17";	//Set Request Status is 17
 		       ReqStatus_17_Act(outA);	//
-		       ReRunStatus_17_Act(outA);
+		       //ReRunStatus_17_Act(outA);//20140924 決定不呼叫
 	       }
 	       
 	       /*cReqStatus = "17";
