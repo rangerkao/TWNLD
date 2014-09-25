@@ -1973,6 +1973,15 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 	       /*cReqStatus = "17";
 	       ReqStatus_17(outA);	
 	       ReRunStatus_17(outA);*/
+	       
+	       
+	       logger.info("Run ContentProvider_extract");
+	       Record rc=new Record(cTWNLDIMSI,cTWNLDMSISDN,cAddonAction);
+	       
+	       ContentProvider_extract ce=new ContentProvider_extract(getServletContext().getRealPath("/"),rc);
+	       ce.doProvider();
+	       
+	       logger.info("End ContentProvider_extract");
 
         }
 
