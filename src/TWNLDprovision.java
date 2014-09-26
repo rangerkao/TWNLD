@@ -21,6 +21,9 @@
  * 2012/11/13 修正FORWARD_TO_HOME_NO,S_FORWARD_TO_HOME_NO 狀態05 type=202判斷 帶新中華門號
  * 2013/02/27 新增印尼(IDN)VLN
  * 2013/09/28 Remove SWE VLN and changed to CamGSM - by Duke
+ * 2014/09/23 將Request17 Rerun17 驗證與操作table分開，運行18後只呼叫操作table部分
+ * 2014/09/24 取消18後呼叫Rerun17
+ * 2014/09/24 加入CMHK ContentProvider部分程式
  */
 
 
@@ -1974,7 +1977,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 	       ReqStatus_17(outA);	
 	       ReRunStatus_17(outA);*/
 	       
-	       
+	       //20140924 add
 	       logger.info("Run ContentProvider_extract");
 	       Record rc=new Record(cTWNLDIMSI,cTWNLDMSISDN,cAddonAction);
 	       

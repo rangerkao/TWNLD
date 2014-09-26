@@ -22,7 +22,16 @@ public class ContentProvider_extract {
 	private static final String DB_PWD = "foyadev";
 	private static final String DB_DRIVER_PATH = "com.mysql.jdbc.Driver";
 		
-	private static final String TARGET_URL = "http://ei-dev1v1.hk.chinamobile.com/mvno_api/MVNO_UPDATE_QOS";
+	//private static final String TARGET_URL = "http://ei-dev1v1.hk.chinamobile.com/mvno_api/MVNO_UPDATE_QOS";
+	//20140926 更改target IP
+	//on 101 Test IP
+	private static final String TARGET_URL ="http://203.142.105.18";
+	//on 192  IP
+	//private static final String TARGET_URL ="http://203.142.105.91";
+	
+	private static final String TARGET_URL2="/mvno_api/MVNO_UPDATE_QOS";
+	
+	
 	private static final String LOGGER_PATH = "/export/home/foya/S2T/log/CP.log";
 	private static final String CLASS = "CP.class.name";
 	private static final String AMPERSAND = "&";
@@ -80,8 +89,8 @@ public class ContentProvider_extract {
 		if(rc!=null){
 			data=loadPostData();
 			response = sendPost(data);
-			logger.info(response);
-			System.out.println(response);
+			logger.info("response:"+response);
+			System.out.println("response:"+response);
 		}else{
 			eMeg="Record is null";
 			Send_AlertMail();
@@ -134,7 +143,7 @@ public class ContentProvider_extract {
 		String errorCode = "0";
 		
 		try {
-			URL url = new URL(TARGET_URL);
+			URL url = new URL(TARGET_URL+TARGET_URL2);
 			
 			logger.debug("openConnection:"+TARGET_URL);
 			
@@ -156,6 +165,7 @@ public class ContentProvider_extract {
 		    logger.debug("Send Request");
 		    String postData = URLEncoder.encode(parameter, UTF_8);
 		    OutputStream out = connection.getOutputStream();
+		    logger.debug("Write PostData:"+postData);
 		    out.write(postData.getBytes());
 		    out.close();
 		      
@@ -177,14 +187,14 @@ public class ContentProvider_extract {
 		    return response.toString();
 		  } catch(MalformedURLException e) {
 			  //send email here
+			  logger.error("at sendPost got MalformedURLException:"+e.getMessage());
 			  eMeg="at sendPost got MalformedURLException:"+e.getMessage();
 			  Send_AlertMail();
-			  logger.error("at sendPost got MalformedURLException:"+e.getMessage());
 		  } catch(IOException e) {
 			  //send email here
+			  logger.error("at sendPost got IOException:"+e.getMessage());
 			  eMeg="at sendPost got IOException:"+e.getMessage();
 			  Send_AlertMail();
-			  logger.error("at sendPost got IOException:"+e.getMessage());
 		  } finally {
 			  if(connection != null) {
 				  connection.disconnect();
