@@ -703,7 +703,7 @@ public class TWNLDprovision extends HttpServlet {
                 if (csta.equals("1")){
                     csta="";
              csta=Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
-                if (cTWNLDMSISDN.equals(csta)){
+                if (!"0".equals(csta)){
                     csta="";
                 csta=Query_ServiceStatus();
                 if (csta.equals("")){csta="0";}
@@ -778,7 +778,7 @@ public class TWNLDprovision extends HttpServlet {
                 if (csta.equals("1")){
                     csta="";
              csta=Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
-                if (cTWNLDMSISDN.equals(csta)){
+                if (!"0".equals(csta)){
                     csta="";
                 csta=Query_ServiceStatus();
                 if (csta.equals("")){csta="0";}
@@ -862,7 +862,7 @@ public class TWNLDprovision extends HttpServlet {
                 if (csta.equals("1")){
                     csta="";
               csta=Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
-                if (cTWNLDMSISDN.equals(csta)){
+                if (!"0".equals(csta)){
                     csta="";
               csta=Query_ServiceStatus();
                 if (csta.equals("")){csta="0";}
@@ -937,7 +937,7 @@ public class TWNLDprovision extends HttpServlet {
                 if (csta.equals("1")){
                     csta="";
               csta=Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
-                if (cTWNLDMSISDN.equals(csta)){
+                if (!"0".equals(csta)){
                     csta="";
               csta=Query_ServiceStatus();
                 if (csta.equals("")){csta="0";}
@@ -1329,7 +1329,8 @@ public class TWNLDprovision extends HttpServlet {
                 if (csta.equals("1")){
                    csta="";
                csta=Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
-                if (cTWNLDMSISDN.equals(csta)){
+                //if (cTWNLDMSISDN.equals(csta)){
+               if (!"0".equals(csta)){
                     csta="";
               bb=Validate_IMSIRange(cS2TIMSI);
               if (bb==true){
@@ -1393,7 +1394,7 @@ public class TWNLDprovision extends HttpServlet {
                 if (csta.equals("1")){
                    csta="";
                csta=Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
-                if (cTWNLDMSISDN.equals(csta)){
+                if (!"0".equals(csta)){
                     csta="";
               bb=Validate_IMSIRange(cS2TIMSI);
               if (bb==true){
@@ -1467,7 +1468,7 @@ public class TWNLDprovision extends HttpServlet {
                 if (csta.equals("1")){
                   csta="";
                csta=Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
-                if (cTWNLDMSISDN.equals(csta)){
+                if (!"0".equals(csta)){
                     csta="";
                 csta=Update_GPRSStatus();
                 switch (Integer.parseInt(csta)){
@@ -1540,7 +1541,7 @@ public class TWNLDprovision extends HttpServlet {
                 if (csta.equals("1")){
                   csta="";
                csta=Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
-                if (cTWNLDMSISDN.equals(csta)){
+                if (!"0".equals(csta)){
                     csta="";
                 csta=Update_GPRSStatus();
                 switch (Integer.parseInt(csta)){
@@ -1623,7 +1624,7 @@ public class TWNLDprovision extends HttpServlet {
     		csta = "";	 
     		csta = Check_TWN_Msisdn_Status(cTWNLDIMSI, cS2TIMSI);
     	
-    		if(cTWNLDMSISDN.equals(csta)) {
+    		if(!"0".equals(csta)) {
     			csta = Update_GPRSStatus();
     			
                 switch(Integer.parseInt(csta)) {
@@ -1711,7 +1712,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     	csta = "";
         csta = Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
         
-        if(cTWNLDMSISDN.equals(csta)) {
+        if(!"0".equals(csta)) {
         	csta = "";
             bb = Validate_IMSIRange(cS2TIMSI);
             
@@ -1805,7 +1806,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
                 if (csta.equals("1")){
                    csta="";
                csta=Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
-                if (cTWNLDMSISDN.equals(csta)){
+                if (!"0".equals(csta)){
                     csta="";
                       bb=Validate_IMSIRange(cS2TIMSI);
                       if (bb==true){
@@ -1858,7 +1859,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
                 if (csta.equals("1")){
                    csta="";
                csta=Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
-                if (cTWNLDMSISDN.equals(csta)){
+                if (!"0".equals(csta)){
                     csta="";
                       bb=Validate_IMSIRange(cS2TIMSI);
                       if (bb==true){
@@ -4068,13 +4069,17 @@ public String Check_TWN_Msisdn_Status(String TWNImsiA,String S2TImsiA) throws SQ
    if(!Ssvrid.equals("0")){
       Temprs = null;
         
-      sSql = "select followmenumber from followmedata where  serviceid='" + Ssvrid + "'";
+      //sSql = "select followmenumber from followmedata where  serviceid='" + Ssvrid + "'";
+      sSql = "select count(followmenumber) as ab from followmedata where  serviceid='" + Ssvrid + "' AND followmenumber='"+cTWNLDMSISDN+"'";
       logger.info("Check_TWN_Msisdn_Status_B:"+sSql);
+      
       Temprs=s2t.Query(sSql);
       
       while(Temprs.next()) {
-         TwnMsisdn=Temprs.getString("followmenumber");
+         //TwnMsisdn=Temprs.getString("followmenumber");
+    	  TwnMsisdn=Temprs.getString("ab");
       }
+      logger.info("Count Result:"+TwnMsisdn);
       
       if(TwnMsisdn.equals("")) {
     	  TwnMsisdn="0";
