@@ -454,13 +454,13 @@ public class TWNLDprovision extends HttpServlet {
         }
         else {
                 out.println("<Return_Code>");
-                out.println("600");
+                out.println("601");
                 out.println("</Return_Code>");
                 out.println("<Return_DateTime>");
                 out.println(s2t.Date_Format()+s2t.Date_Format_Time());
                 out.println("</Return_DateTime>");
-                desc="JAVA error";
-                sreturnXml=sreturnXml+"<Return_Code>600</Return_Code><Return_DateTime>"+
+                desc="DBconnection error";
+                sreturnXml=sreturnXml+"<Return_Code>601</Return_Code><Return_DateTime>"+
                         s2t.Date_Format()+s2t.Date_Format_Time()+"</Return_DateTime>";
         }
         }
@@ -2864,7 +2864,8 @@ public void Process_ServiceOrder() throws SQLException, IOException{
    }catch(Exception ex){
        StringWriter   s   =   new   StringWriter();
         ex.printStackTrace(new PrintWriter(s));
-        logger.error("JAVA Error:"+s.toString());
+        //20141004 新增 601 DBconnection Error
+        logger.error(" DBconnection Error:"+s.toString());
        bconn=false;}
     finally {return bconn;}
     }
