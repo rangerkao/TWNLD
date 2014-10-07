@@ -24,6 +24,7 @@
  * 2014/09/23 將Request17 Rerun17 驗證與操作table分開，運行18後只呼叫操作table部分
  * 2014/09/24 取消18後呼叫Rerun17
  * 2014/09/24 加入CMHK ContentProvider部分程式
+ * 2014/10/07 新增錯誤訊息601 DBconnection Error
  */
 
 
