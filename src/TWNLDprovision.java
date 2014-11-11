@@ -2303,27 +2303,27 @@ logger.debug("Query_PartnerMSISDNStatus:"+sSql);
              s2t.Update(sSql); }}
     }
 
-public void Process_ServiceOrder() throws SQLException, IOException{
-   sSql = "INSERT INTO S2T_TB_SERVICE_ORDER (SERVICE_ORDER_NBR, "+
-          "WORK_TYPE, S2T_MSISDN, SOURCE_TYPE, SOURCE_ID, STATUS, "+
-          "CREATE_DATE) "+ "VALUES ('"+cServiceOrderNBR+"','"+ cReqStatus+"','"+ cS2TMSISDN+
-          "',"+"'B_TYPE',"+ cWorkOrderNBR+", '', sysdate)";
-                
-   logger.info("Process_ServiceOrder[1]:" + sSql);
-   Temprs = s2t.Query(sSql);
-   s2t.Inster(sSql);
-   Temprs = null;
-                
-   sSql="Select MNO_NAME from S2T_TB_MNO_COMPANY "+
-        "Where MNO_SUB_CODE='"+sMNOSubCode+"'";
-     
-   logger.debug("Process_ServiceOrder[2]:"+sSql);
-   Temprs = s2t.Query(sSql);
-               
-   while(Temprs.next()) {
-      sMNOName = Temprs.getString("MNO_NAME");
-   }
-}
+	public void Process_ServiceOrder() throws SQLException, IOException{
+	   sSql = "INSERT INTO S2T_TB_SERVICE_ORDER (SERVICE_ORDER_NBR, "+
+	          "WORK_TYPE, S2T_MSISDN, SOURCE_TYPE, SOURCE_ID, STATUS, "+
+	          "CREATE_DATE) "+ "VALUES ('"+cServiceOrderNBR+"','"+ cReqStatus+"','"+ cS2TMSISDN+
+	          "',"+"'B_TYPE',"+ cWorkOrderNBR+", '', sysdate)";
+	                
+	   logger.info("Process_ServiceOrder[1]:" + sSql);
+	   Temprs = s2t.Query(sSql);
+	   s2t.Inster(sSql);
+	   Temprs = null;
+	                
+	   sSql="Select MNO_NAME from S2T_TB_MNO_COMPANY "+
+	        "Where MNO_SUB_CODE='"+sMNOSubCode+"'";
+	     
+	   logger.debug("Process_ServiceOrder[2]:"+sSql);
+	   Temprs = s2t.Query(sSql);
+	               
+	   while(Temprs.next()) {
+	      sMNOName = Temprs.getString("MNO_NAME");
+	   }
+	}
 
      public void Process_ServiceOrderItem() throws SQLException, IOException{
           sSql="Insert into S2T_TB_SERVICE_ORDER_ITEM (SERVICE_ORDER_NBR,"+
