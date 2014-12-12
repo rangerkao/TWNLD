@@ -52,8 +52,12 @@ public class Post extends HttpServlet {
 			S2TIMSI = request.getParameter("S2T_IMSI");
 			S2TMSISDN = request.getParameter("S2T_MSISDN");
 			ReqStatus = request.getParameter("Req_Status");
-			AddonCode = request.getParameter("Addon_Code");
-			AddonAction = request.getParameter("Addon_Action");
+			
+			/*AddonCode = request.getParameter("Addon_Code");
+			AddonAction = request.getParameter("Addon_Action");*/
+			String[] AddonCode =request.getParameterValues("Addon_Code");
+			String[] AddonAction =request.getParameterValues("Addon_Action");
+			
 			VLNCountry = request.getParameter("VLN_Country");
 			GPRSStatus = request.getParameter("GPRS_Status");
 			IPP = request.getParameter("IPP");
@@ -75,10 +79,20 @@ public class Post extends HttpServlet {
 			msg = msg + "<S2T_IMSI>" + S2TIMSI + "</S2T_IMSI>";
 			msg = msg + "<S2T_MSISDN>" + S2TMSISDN + "</S2T_MSISDN>";
 			msg = msg + "<Req_Status>" + ReqStatus + "</Req_Status>";
-			msg = msg + "<Addon_Service> <Addon_Item>";
-			msg = msg + "<Addon_Code>" + AddonCode + "</Addon_Code>";
-			msg = msg + "<Addon_Action>" + AddonAction + "</Addon_Action>";
-			msg = msg + "</Addon_Item> </Addon_Service>";
+			msg = msg + "<Addon_Service>";
+			
+			for(int i = 0;i<AddonCode.length && i<AddonAction.length;i++){
+				
+				if("".equals(AddonCode[i])||AddonCode[i]==null||"".equals(AddonAction[i])||AddonAction[i]==null)
+					continue;
+				msg = msg + "<Addon_Item>";
+				msg = msg + "<Addon_Code>" + AddonCode[i] + "</Addon_Code>";
+				msg = msg + "<Addon_Action>" + AddonAction[i] + "</Addon_Action>";
+				msg = msg + "</Addon_Item>";
+			}
+			/*msg = msg + "<Addon_Code>" + AddonCode + "</Addon_Code>";
+			msg = msg + "<Addon_Action>" + AddonAction + "</Addon_Action>";*/
+			msg = msg + "</Addon_Service>";
 			msg = msg + "<VLN_Country>" + VLNCountry + "</VLN_Country>";
 			msg = msg + "<GPRS_Status>" + GPRSStatus + "</GPRS_Status>";
 			msg = msg + "</ActivationRsp>";

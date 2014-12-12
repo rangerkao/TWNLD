@@ -100,7 +100,8 @@ public class TWNLDprovision extends HttpServlet {
     //20140919 Add RecordErrorSQL
     String sErrorSQL="",iErrorMsg="";
     
-    
+    static //20141121 add for customer service number
+    Connection conn2 = null ; 
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
      * @param request servlet request
@@ -114,12 +115,56 @@ public class TWNLDprovision extends HttpServlet {
         try {
             s2tconf.load(new   FileInputStream( Spath +"/log4j.properties"));
             PropertyConfigurator.configure(s2tconf);
-            logger=Logger.getLogger("PRISMprovision");
+            logger=Logger.getLogger("PRISMprovision");  
+            connectDB2();
         }
        catch (IOException e) {
             e.printStackTrace();
-        }
+        } catch (Exception e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
     }
+    
+    protected static void connectDB2() {
+    	//logger.info("connectDB2...");
+		String url=s2tconf.getProperty("mBOSS.URL")
+				.replace("{{Host}}", s2tconf.getProperty("mBOSS.Host"))
+				.replace("{{Port}}", s2tconf.getProperty("mBOSS.Port"))
+				.replace("{{ServiceName}}", (s2tconf.getProperty("mBOSS.ServiceName")!=null?s2tconf.getProperty("mBOSS.ServiceName"):""))
+				.replace("{{SID}}", (s2tconf.getProperty("mBOSS.SID")!=null?s2tconf.getProperty("mBOSS.SID"):""));
+		try {
+			conn2=connDB(logger, s2tconf.getProperty("mBOSS.DriverClass"), url, 
+					s2tconf.getProperty("mBOSS.UserName"), 
+					s2tconf.getProperty("mBOSS.PassWord")
+					);
+			if(conn2==null){
+				logger.error("Connection for MBOSS is null !");
+			}
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			logger.error("connectDB2 Exception : "+e.getMessage());
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			logger.error("connectDB2 Exception : "+e.getMessage());
+		}
+			
+
+	}
+    public static Connection connDB(Logger logger, String DriverClass, String URL,
+			String UserName, String PassWord) throws ClassNotFoundException, SQLException {
+		//logger.debug("Start to connect DB ");
+
+		Connection conn = null;
+
+			Class.forName(DriverClass);
+			conn = DriverManager.getConnection(URL, UserName, PassWord);
+			//logger.debug("Finished to connect DB ");
+
+		return conn;
+	}
     
     private boolean checkAddonCode(String code) {
     	String regex = "^sx\\d{3}$";
@@ -262,6 +307,8 @@ public class TWNLDprovision extends HttpServlet {
         sSFMTHa="";
         sFORWARD_TO_HOME_NO="";
         sS_FORWARD_TO_HOME_NO="";
+        
+        sErrorSQL="";
 		
 		/*********************************************************/
         cAddonCode = "";
@@ -288,7 +335,6 @@ public class TWNLDprovision extends HttpServlet {
         	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = dbf.newDocumentBuilder();
             Document doc1 = builder.parse(new InputSource(request.getReader()));
-           
 		   
             //******************************************************************************************************
             //Document doc1 = builder.parse(new File("C://Users/Administrator/workspace/TWNLD/src/test.xml"));
@@ -318,11 +364,19 @@ public class TWNLDprovision extends HttpServlet {
                 
                   while(TempRtA.next()) {
                      cSubscrId = TempRtA.getString("ab");
-                     Old_result_flag=TempRtA.getString("cd");
+                     Old_result_flag=TempRtA.getString("cd"); 
+                  }
+                  
+                  //20141211 add
+                  if("18".equals(cReqStatus) && "".equals(cAddonCode)&& "".equals(cAddonAction)){
+                	  	logger.debug("AddonCode or AddonAction is ineffective!");
+                	  	Query_PreProcessResult(out,"000");
+             	       return;
+             		 	
                   }
              
                   if(!cSubscrId.equals(cTicketNumber)) {
-                     switch(Integer.parseInt(cReqStatus)) {
+                	  switch(Integer.parseInt(cReqStatus)) {
                         case 0:
                            ReqStatus_00(out);
                            break;
@@ -345,39 +399,34 @@ public class TWNLDprovision extends HttpServlet {
                             ReqStatus_17(out);
                             break;
                          case 18:
-                         {
-                        	 Query_AddonStatus(out, doc1);
-                        	 if(!"".equals(cAddonCode)&& !"".equals(cAddonAction)){
+	                         {
+                        		 Query_AddonStatus(out, doc1);
                         		 ReqStatus_18(out);	
-                        	 }else{
-                        		 logger.debug("AddonCode or AddonAction is ineffective!");
-                        		 Query_PreProcessResult(out,"000");
-                        	 }
-                         }
-                           break;//}
+	                         }
+	                         break;//}
                          case 19:
                             ReqStatus_19(out);
                             break;//}
                          case 97:
-            //else if (cReqStatus.equals("97")){
-                         {
-                            sWSFStatus = "O";
-                            Process_SyncFile(sWSFStatus);
-                            Query_ByPartnerIMSI(out);
-                         }
+                        	 //else if (cReqStatus.equals("97")){
+	                         {
+	                            sWSFStatus = "O";
+	                            Process_SyncFile(sWSFStatus);
+	                            Query_ByPartnerIMSI(out);
+	                         }
                             break; //}
                          case 98:
-               // else if (cReqStatus.equals("98")){
-                         {
-                            sWSFStatus = "O";
-                            Process_SyncFile(sWSFStatus);
-                            Query_ByPartnerMSISDN(out);
-                         }
+                        	 // else if (cReqStatus.equals("98")){
+	                         {
+	                            sWSFStatus = "O";
+	                            Process_SyncFile(sWSFStatus);
+	                            Query_ByPartnerMSISDN(out);
+	                         }
                             break;//}
                          case 99:
                             ReqStatus_99(out);
                             break;
-           // else {iError=1;}
+                            // else {iError=1;}
                          default:  
                         	 iError=1;
                         	 
@@ -387,7 +436,7 @@ public class TWNLDprovision extends HttpServlet {
                         	 
                         	 break;
                       }
-        //}else {Query_PreProcessResult(out,"402");}
+                	  //}else {Query_PreProcessResult(out,"402");}
 					   logger.info("iError:" + iError+", cRCode:" + cRCode);
 					   
 					   if((iError == 0) && (cRCode.equals("000"))) {
@@ -396,64 +445,60 @@ public class TWNLDprovision extends HttpServlet {
 					   //501 S
 					   if ((iError!=0)&&(!cRCode.equals("000"))){
 						   S501(out,cRCode);
-							   } //501 E
-                    }
-        else if (cSubscrId.equals(cTicketNumber) && !Old_result_flag.equals("000")){
-                    switch(Integer.parseInt(cReqStatus)){
-                case 0:
-                  ReRunStatus_00(out);
-                  break;
-                case 1:
-                  ReRunStatus_01(out);
-                  break;
-                case 2:
-                  ReRunStatus_02(out);
-                  break;
-                case 3:
-                  ReRunStatus_03(out);
-                  break;
-                case 5:
-                  ReRunStatus_05(out);
-                  break;
-                case 7:
-                  ReRunStatus_07(out);
-                  break;
-                case 17:
-                  ReRunStatus_17(out);
-                  break;
-                case 18:
-                	if(!"".equals(cAddonCode)&& !"".equals(cAddonAction)){
-                		ReRunStatus_18(out);
-                	}else{
-                		Query_PreProcessResult(out,"000");
-                		logger.debug("AddonCode or AddonAction is ineffective!");
-                	}
-                		
-                  break;
-                case 99:
-                  ReRunStatus_99(out);
-                  break;
-                default:  
+					   } //501 E
+                    } else if (cSubscrId.equals(cTicketNumber) && !Old_result_flag.equals("000")){
+                    	switch(Integer.parseInt(cReqStatus)){                	
+		                case 0:
+		                  ReRunStatus_00(out);
+		                  break;
+		                case 1:
+		                  ReRunStatus_01(out);
+		                  break;
+		                case 2:
+		                  ReRunStatus_02(out);
+		                  break;
+		                case 3:
+		                  ReRunStatus_03(out);
+		                  break;
+		                case 5:
+		                  ReRunStatus_05(out);
+		                  break;
+		                case 7:
+		                  ReRunStatus_07(out);
+		                  break;
+		                case 17:
+		                  ReRunStatus_17(out);
+		                  break;
+		                case 18:
+		                	ReRunStatus_18(out);
+		                	break;
+		                case 99:
+		                	
+			                ReRunStatus_99(out);
+			                break;
+		                default:
 							iError = 1;
 
 							if ("".endsWith(iErrorMsg))
 								iErrorMsg += ",";
 							iErrorMsg += "ReqStatus is incorrect!";
-             }
-              logger.info("iError:"+iError+",cRCode:"+cRCode);
-              if ((iError==0)&&(cRCode.equals("000"))){
-                 RCode_000(out);
-               }
-              //501 S
-              if ((iError!=0)&&(!cRCode.equals("000"))){
-                S501(out,cRCode);
-              } //501 E
-        }
-        else {Query_PreProcessResult(out,"107");}
-                    }
-                    else{ Query_PreProcessResult(out,"110");}
-        }
-        else {
+                    	}
+
+			              logger.info("iError:"+iError+",cRCode:"+cRCode);
+			              if ((iError==0)&&(cRCode.equals("000"))){
+			                 RCode_000(out);
+			               }
+			              //501 S
+			              if ((iError!=0)&&(!cRCode.equals("000"))){
+			                S501(out,cRCode);
+			              } //501 E
+                    } else {
+                    	Query_PreProcessResult(out,"107");
+                	}
+               } else{ 
+            	   Query_PreProcessResult(out,"110");
+        	   }
+            } else {
                 out.println("<Return_Code>");
                 out.println("601");
                 out.println("</Return_Code>");
@@ -463,28 +508,25 @@ public class TWNLDprovision extends HttpServlet {
                 desc="DBconnection error";
                 sreturnXml=sreturnXml+"<Return_Code>601</Return_Code><Return_DateTime>"+
                         s2t.Date_Format()+s2t.Date_Format_Time()+"</Return_DateTime>";
-        }
-        }
-    catch(SQLException ex){
-        StringWriter   s   =   new   StringWriter();
-        ex.printStackTrace(new PrintWriter(s));
-        logger.error("JAVA Error:"+s.toString());
+            }
+        }catch(SQLException ex){
+	        StringWriter   s   =   new   StringWriter();
+	        ex.printStackTrace(new PrintWriter(s));
+	        logger.error("JAVA Error:"+s.toString());
+	           sSql="update PROVLOG set javaerrmsg='"+s.toString()+"' where LOGID="+ sCMHKLOGID;
+	           s2t.Update(sSql);
+	        sErrorSQL+=sSql;
+	        Query_PreProcessResult(out,"600");
+        }catch(Exception ex){
+	        StringWriter s = new StringWriter();
+	        ex.printStackTrace(new PrintWriter(s));
+	        logger.error("JAVA Error:"+s.toString());
            sSql="update PROVLOG set javaerrmsg='"+s.toString()+"' where LOGID="+
                    sCMHKLOGID;
            s2t.Update(sSql);
-        sErrorSQL+=sSql;
-        Query_PreProcessResult(out,"600");
-    }
-    catch(Exception ex){
-        StringWriter s = new StringWriter();
-        ex.printStackTrace(new PrintWriter(s));
-        logger.error("JAVA Error:"+s.toString());
-           sSql="update PROVLOG set javaerrmsg='"+s.toString()+"' where LOGID="+
-                   sCMHKLOGID;
-           s2t.Update(sSql);
-          Query_PreProcessResult(out,"600");
-        }
-        finally {
+           Query_PreProcessResult(out,"600");
+        }finally {
+        	
           logger.info("Procedure End");
           out.println("<Return_MSG>");
           out.println(desc);
@@ -492,13 +534,16 @@ public class TWNLDprovision extends HttpServlet {
           out.println("</ActivationRsp>");
           sreturnXml=sreturnXml+"<Return_MSG>"+desc+"</Return_MSG></ActivationRsp>";
           logger.info(sreturnXml);
-          if ((!cReqStatus.equals("97"))||(!cReqStatus.equals("98"))) {
-            runtime.exec(s2tconf.getProperty("Run_Shell"));
-				  //Send False Mail
-				 if ((!Process_Code.equals("000"))||(!cRCode.equals("000"))){
-					Send_AlertMail();
-				 }
-			}
+          //20141211 add
+          if(!"18".equals(cReqStatus) || !"".equals(cAddonCode)|| !"".equals(cAddonAction)){
+        	  if ((!cReqStatus.equals("97"))||(!cReqStatus.equals("98"))) {
+	              runtime.exec(s2tconf.getProperty("Run_Shell"));
+	  				  //Send False Mail
+	  				 if ((!Process_Code.equals("000"))||(!cRCode.equals("000"))){
+	  					Send_AlertMail();
+	  				 }
+	  			}
+          }  
 			  s2t.Close();
 			  out.close();
             vln.clear();
@@ -1728,12 +1773,14 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
             			smsi = Query_PartnerMSISDNStatus();
            
             			if(!smsi.equals("0")) {
-            				sError = "";
-             
+            				//20141212 mark
+            				/*sError = "";
             				if(!cVLNCountry.equals("")) {
             					sError = "";
             					sError = Process_VLNString(cVLNCountry);
-            				}
+            				}*/
+            				sError="0";
+            				
                 
             				if(sError.equals("0")) {
             					iCut = Sparam.indexOf(",");
@@ -1947,17 +1994,14 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
               VARREALMSG += "服務已經依您選擇完成退租。日後如有需要歡迎隨時加選。環球卡感謝您！";
 	       }
 	       
-	       logger.info("Addon Message has been sent");
 	       send_SMS(VARREALMSG);
-	       
-	       
-	       
+
 	       /*****************   Query starts here  ********************/
 	       /* sSql = "update XXX set XXX ='" + cAddonAction + "' where XXX = ''";   ****/
 	       /***********************************************************/
 	       
 	       //20140919 Add 
-	       Query_GPRSStatus(); //query GPRS Status store in cGPRS
+	      /* Query_GPRSStatus(); //query GPRS Status store in cGPRS
 	       if(cGPRS.equals("0") && cAddonAction.equals("A")){//if GPRS is enable and action is "Add"
 	    	   
 	    	   logger.info("Running Req17 after Req18 to enable GPRS...");
@@ -1973,7 +2017,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 	    	   cReqStatus = "17";	//Set Request Status is 17
 		       ReqStatus_17_Act(outA);	//
 		       //ReRunStatus_17_Act(outA);//20140924 決定不呼叫
-	       }
+	       }*/
 	       
 	       /*cReqStatus = "17";
 	       ReqStatus_17(outA);	
@@ -1981,13 +2025,18 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 	       
 	       //20140924 add
 	       logger.info("Run ContentProvider_extract");
-	       Record rc=new Record(cTWNLDIMSI,cTWNLDMSISDN,cAddonAction);
+	       Record rc=new Record(cS2TIMSI,cS2TMSISDN.substring(3,cS2TMSISDN.length()),cAddonAction);
 	       
 	       ContentProvider_extract ce=new ContentProvider_extract(getServletContext().getRealPath("/"),rc);
-	       ce.doProvider();
+	       String response=ce.doProvider();
 	       
 	       logger.info("End ContentProvider_extract");
-
+	       
+	       if(!"200".equals(response)){
+	    	   Send_AlertMail2("Addon Error : IMSI="+cS2TIMSI+" MSISDN:"+cS2TMSISDN.substring(3,cS2TMSISDN.length())+
+	    			   " Action="+cAddonAction+" response="+response);
+	       }
+	       
         }
 
                 
@@ -1996,8 +2045,15 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     	   outA.println(cGPRS);
     	   outA.println("</GPRS_Status>");
          
-    	   VARREALMSG="親愛的中華電信客戶：您已開通「環球卡」服務。您的香港副號碼為 +"+
-           cS2TMSISDN + "，";
+    	   VARREALMSG="";
+    	   VARREALMSG+="親愛的中華電信客戶：您開通「環球卡」服務。香港副號為 +"+cS2TMSISDN;
+    	   VARREALMSG+="。在您抵達香港重新開機後，副號將顯示在手機上。請務必觀看環球卡撥號方式說明影片：  http://goo.gl/sUSCHa。";
+    	   VARREALMSG+="香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！";
+    	   
+    	   
+    	   //20141205 add
+    	   send_SMS(VARREALMSG);
+    	   
     	   outA.println("<VLN>");
     	   sreturnXml=sreturnXml+"<GPRS_Status>"+cGPRS+"</GPRS_Status><VLN>";
         
@@ -2023,16 +2079,35 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     				logger.debug("availableVLN[A]:"+sSql);
     				s2t.Update(sSql);
              
+    				//20141205 add
+    				String cV="";
+    				
+    				
     				if (sVln.equals("CHN")) {
-    					iVLN=iVLN+1;
-    					VARREALMSG=VARREALMSG+"中國副號碼為 +"+cVLNc+"，";
+    					//20141205 mark
+    					//iVLN=iVLN+1;
+    					//VARREALMSG=VARREALMSG+"中國副號碼為 +"+cVLNc+"，";
+    					cV="中國";
     			    } else if (sVln.equals("SGP")) {
-    				   iVLN=iVLN+1;
-    				   VARREALMSG=VARREALMSG+"新加坡副號碼為 +"+cVLNc+"，";
+    			    	//20141205 mark
+    				   //iVLN=iVLN+1;
+    				   //VARREALMSG=VARREALMSG+"新加坡副號碼為 +"+cVLNc+"，";
+    			    	cV="新加坡";
     			    } else if (sVln.equals("SWE")) {
-    			    	iVLN=iVLN+1;
-    				    VARREALMSG=VARREALMSG+"瑞典副號碼為 +"+cVLNc+"，";
+    			    	//20141205 mark
+    			    	//iVLN=iVLN+1;
+    				    //VARREALMSG=VARREALMSG+"瑞典副號碼為 +"+cVLNc+"，";
+    			    	cV="瑞典";
     			    }
+    				
+    				if(!"".equals(cV)){
+    					VARREALMSG="親愛的中華客戶：您開通的「環球卡」"+cV+"副號為+"+cVLNc+"。"
+    							+ "在您抵達中國重新開機後，副號將顯示在手機上。香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！";
+    					send_SMS(VARREALMSG);
+    				}
+    					
+    				
+    				
     		     } else if(sMd.equals("D")) {
     			    sSql="update availableVLN set Status='T',lastupdatetime=sysdate,s2tmsisdn=''"+
     					" where VLNNUMBER='"+cVLNc+"'";
@@ -2052,30 +2127,46 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
          logger.debug("ReqStatus[00-MSISDN]:"+sSql);
          s2t.Update(sSql);
          
-         if(iVLN > 0) {
+         
+         //20141205 mark
+        /* if(iVLN > 0) {
         	 VARREALMSG=VARREALMSG+"您現在就可以通知您當地的朋友打這個電話與您聯絡了！";
          } else {
         	 VARREALMSG=VARREALMSG+"您現在就可以通知您香港的朋友打這個電話與您聯絡了！";
          }
          
          VARREALMSG=VARREALMSG+"副號碼會在您抵達該國時顯示在手機螢幕上，環球卡感謝您！";
-         send_SMS(VARREALMSG);
+         send_SMS(VARREALMSG);*/
          
-         VARREALMSG="提醒您：出國開機時，環球卡會自動轉換至當地門號，轉換過程請依照手機螢幕指示操作，"+
-                 "按下[確定[或是重新開機。如果您搭機時切換為飛機模式，下機後請手動重開機。";
+         VARREALMSG="提醒您：抵達當地國後請確認關閉飛航模式並重新開機，依照螢幕指示按下\"確定\"，環球卡將切換為當地門號。";
          
          send_SMS1(VARREALMSG);
-         VARREALMSG="若您使用的是Symbian作業系統手機(例如NOKIA的N系列或E系列手機)搭配環球卡，"+
+       //20141205 mark
+         /*VARREALMSG="若您使用的是Symbian作業系統手機(例如NOKIA的N系列或E系列手機)搭配環球卡，"+
                  "請主動更改SIM卡型態設定：功能表>工具>環球卡>初始設定>改為Type1。";
-         send_SMS(VARREALMSG);
+         send_SMS(VARREALMSG);*/
         
          outA.println("</VLN>");
     	
          if (cGPRS.equals("1")) {
-        	 VARREALMSG="出國使用環球卡數據服務功能時，須先將數據漫遊功能開啟，並且在網路的APN欄位輸入"+
-                "[peoples.net[。漫遊數據服務依照用量計價，並無收費上限與吃到飽方案，請斟酌使用。";
+        	 VARREALMSG="親愛的中華客戶：您已開通環球卡數據服務，請先將手機數據漫遊功能開啟，在行動網路設定APN 為\"CMHK\"。"
+        	 		+ "除中國、香港、澳門有每日收費上限外，其餘國家按實際用量收費，不提供吃到飽方案，請謹慎使用。另有香港/大陸月租上網吃到飽服務，歡迎加選。";
         
-        	 send_SMS1(VARREALMSG);}
+        	 send_SMS(VARREALMSG);
+        	 
+        	 VARREALMSG="親愛的環球卡用戶，本公司為協助您控管漫遊上網費用，漫遊上網服務每月費用超過NTD5,000時將自動關閉。"
+        	 		+ "如您不希望因超出使用金額而被關閉上網服務，請至www.sim2travel.com/chtm/5k.pdf "
+        	 		+ "下載約定書，或輸入以下內容「請將本人排除此規定」回覆至+886972900154，本公司將為您列入VIP名單，不會在超過額度時自動斷網。"
+        	 		+ "如需諮詢請電客服+{{customerService}}。";
+        	 
+        	 VARREALMSG=replaceCSPhone(VARREALMSG);
+         
+         	 send_SMS1(VARREALMSG);
+         
+         }
+         
+         
+         
     	 }
         
     	if ((cReqStatus.equals("97"))||(cReqStatus.equals("98"))) {
@@ -2123,6 +2214,8 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
                        s2t.Update(sSql);
         }
         if (cReqStatus.equals("07")) {
+        	
+        	
 
         if (vln.size()>0){
         vln.firstElement();
@@ -2138,9 +2231,27 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
       sSql="update availableVLN set Status='U',lastupdatetime=sysdate where "+
               "VLNNUMBER='"+cVLNc+"'";
       s2t.Update(sSql);
-             if (sVln.equals("CHN")){VARREALMSG=VARREALMSG+"中國副號碼為 +"+cVLNc+"，";}
-             else if (sVln.equals("SGP")){VARREALMSG=VARREALMSG+"新加坡副號碼為 +"+cVLNc+"，";}
-             else if (sVln.equals("SWE")){VARREALMSG=VARREALMSG+"瑞典副號碼為 +"+cVLNc+"，";}
+      
+      String cV="";
+      
+             if (sVln.equals("CHN")){
+            	 cV="中國";
+            	 //VARREALMSG=VARREALMSG+cV+"副號碼為 +"+cVLNc+"。";
+            	 }
+             else if (sVln.equals("SGP")){
+            	 cV="新加坡";
+            	 //VARREALMSG=VARREALMSG+cV+"副號碼為 +"+cVLNc+"。";
+            	 }
+             else if (sVln.equals("SWE")){
+            	 cV="瑞典";
+            	 //VARREALMSG=VARREALMSG+cV+"副號碼為 +"+cVLNc+"。";
+            	 }
+             
+             if(!"".equals(cV)){
+					VARREALMSG="親愛的中華客戶：您開通的「環球卡」"+cV+"副號為+"+cVLNc+"。"
+							+ "在您抵達中國重新開機後，副號將顯示在手機上。香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！";
+					send_SMS(VARREALMSG);
+				}
         }	
       else if (sMd.equals("D")) {
       sSql="update availableVLN set Status='Z',lastupdatetime=sysdate,s2tmsisdn=''"+
@@ -2148,11 +2259,12 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
       s2t.Update(sSql);}
         }
         }
-        if (VARREALMSG.length()>0){
+        //20141205 mark
+        /*if (VARREALMSG.length()>0){
         VARREALMSG="親愛的環球卡客戶：您新開通的 "+VARREALMSG+"您現在就可以通知您當地的朋友"+
-                "打這個電話與您聯絡了！副號碼會在您抵達該國時顯示在手機螢幕上，環球卡感謝您！";
+                "打這個電話與您聯絡了！副號碼會在您抵達當地重新開機後，副號將顯示在手機上。香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！";
          send_SMS(VARREALMSG);
-        }
+        }*/
         TempRt=null;
         sSql="SELECT b.countryinit||a.vln as ab FROM vlnnumber a, " +
                 "COUNTRYINITIAL b WHERE a.vplmnid=b.vplmnid"+
@@ -2177,12 +2289,124 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
      }
        if (cReqStatus.equals("17")){
           if (cGPRS.equals("1")){
-        VARREALMSG="出國使用環球卡數據服務功能時，須先將數據漫遊功能開啟，並且在網路的APN"+
+        /*VARREALMSG="出國使用環球卡數據服務功能時，須先將數據漫遊功能開啟，並且在網路的APN"+
                 "欄位輸入[peoples.net[。漫遊數據服務依照用量計價，並無收費上限與吃到飽方案，"+
-                "請斟酌使用。";
+                "請斟酌使用。";*/
+        	  VARREALMSG="親愛的環球卡用戶，本公司為協助您控管漫遊上網費用，漫遊上網服務每月費用達約NTD5,000時將自動關閉。"
+        	  		+ "如您不希望因超出使用金額而被關閉上網功能，影響您的商務進行，請至www.sim2travel.com/chtm/5k.pdf"
+        	  		+ "下載約定書，或輸入以下內容回覆本簡訊「請將本人排除此規定」，本公司將為您列入VIP名單，不會在超過額度時自動斷網。"
+        	  		+ "如需諮詢請電客服+{{customerService}}。";
+        	  
+        	  VARREALMSG=replaceCSPhone(VARREALMSG);
+        	  
+        	  
         send_SMS(VARREALMSG);
         }}
     }
+    
+    
+    
+    private String replaceCSPhone(String msg){
+    	String cphone=null;
+    	  
+    	  if(conn2!=null){
+    		  try {
+  				cphone=queryCustmerServicePhone(cS2TIMSI);
+  			} catch (SQLException e) {
+  				// TODO Auto-generated catch block
+  				e.printStackTrace();
+  			}
+    	  }
+
+    	  if(cphone==null)cphone="";
+    	  msg=msg.replaceAll("{{customerService}}", cphone);
+    	  
+    	  return msg;
+    }
+    //Query Customer Service Phone number
+    private String queryCustmerServicePhone(String imsi) throws SQLException{
+		String cphone=null;
+		String VLN=queryVLR(imsi);
+		
+		if(VLN!=null && !"".equals(VLN)){
+			Map<String,String> tadigMap = queryTADIG();
+			
+			if(tadigMap.size()>0){
+				String tadig=null;
+				for(int i=VLN.length();i>0;i--){
+					tadig=tadigMap.get(VLN.substring(0,i));
+					if(tadig!=null &&!"".equals(tadig)){
+						break;
+					}
+				}
+				if(tadig!=null &&!"".equals(tadig)){
+					String mccmnc=queryMccmnc(tadig);
+					if(mccmnc!=null &&!"".equals(mccmnc)){
+						cphone=queryCustomerServicePhone(mccmnc);
+					}
+				}
+			}
+		}
+		return cphone;
+	}
+    public String queryVLR(String imsi) throws SQLException{
+		String VLN=null;
+		
+		sSql="SELECT VLR_NUMBER FROM UTCN.BASICPROFILE WHERE IMSI='"+imsi+"'";
+		logger.debug("Execute sql: "+sSql);
+		ResultSet rs=conn2.createStatement().executeQuery(sSql);
+		
+		while(rs.next()){
+			VLN=rs.getString("VLR_NUMBER");
+		}
+		rs.close();
+		
+		return VLN;
+	}
+	
+	public Map<String,String> queryTADIG() throws SQLException{
+		Map<String,String> map = new HashMap<String,String>();
+		
+		sSql=" SELECT B.REALMNAME TADIG, A.CHARGEAREACODE VLR FROM CHARGEAREACONFIG A, REALM B "
+				+ "WHERE A.AREAREFERENCE=B.AREAREFERENCE ";
+		logger.debug("Execute sql: "+sSql);
+		ResultSet rs=conn2.createStatement().executeQuery(sSql);
+		
+		while(rs.next()){
+			map.put(rs.getString("VLR"), rs.getString("TADIG"));
+		}
+		rs.close();
+		return map;
+	}
+	public String queryMccmnc(String tadig) throws SQLException{
+		String mccmnc=null;
+				
+		sSql=" SELECT MCCMNC FROM HUR_MCCMNC WHERE TADIG='"+tadig+"'";
+		logger.debug("Execute sql: "+sSql);
+		ResultSet rs=s2t.Query(sSql);
+
+		while(rs.next()){
+			mccmnc=rs.getString("MCCMNC");
+		}		
+				
+		rs.close();
+
+		return mccmnc;		
+	}
+	
+	public String queryCustomerServicePhone(String mccmnc) throws SQLException{
+		String cPhone=null;
+		String subcode=mccmnc.substring(0,3);
+		sSql=" SELECT PHONE FROM HUR_CUSTOMER_SERVICE_PHONE A WHERE A.CODE ='"+subcode+"'";
+		logger.debug("Execute sql: "+sSql);
+		ResultSet rs=s2t.Query(sSql);
+		
+		while(rs.next()){
+			cPhone=rs.getString("PHONE");
+		}		
+		rs.close();
+		return cPhone;		
+	}
 
 
     
@@ -2875,28 +3099,38 @@ logger.debug("Query_PartnerMSISDNStatus:"+sSql);
         int iCut=0;
         String sV="",sM="",str1="",str="",sE="";
      while (Scut.length()>0){
-       iCut=Scut.indexOf(",");
-      if (iCut>0) {
-       sV=Scut.substring(0, iCut);
-       Scut=Scut.substring(iCut+1, Scut.length());
-       sM=sV.substring(sV.length()-1,sV.length());
-       sV=sV.substring(0,sV.length()-1);}
-       else{sM=Scut.substring(Scut.length()-1,Scut.length());
-       sV=Scut.substring(0,Scut.length()-1);
-          Scut="";}
-       //countryname+vln+countryinit+A or D
-      if (cReqStatus.equals("07")){
-       str1=reGet_VLNNumber(sV,sM);
-       str=str1;
-      }else {str="Error";}
-       if (str.equals("Error")){
-       str=Get_VLNNumber(sV,sM);}
-       if (!str.equals("Error")){
-           logger.info("Process_VLNString:"+str+","+sM);
-       vln.add(str+","+sM);
-       sE="0";}
-       else { sE="1";
-       break;}
+    	 iCut=Scut.indexOf(",");
+    	 if (iCut>0) {
+    		 sV=Scut.substring(0, iCut);
+    		 Scut=Scut.substring(iCut+1, Scut.length());
+    		 sM=sV.substring(sV.length()-1,sV.length());
+    		 sV=sV.substring(0,sV.length()-1);
+		 } else{
+			 sM=Scut.substring(Scut.length()-1,Scut.length());
+			 sV=Scut.substring(0,Scut.length()-1);
+			 Scut="";
+		 }
+    	 //countryname+vln+countryinit+A or D
+    	 if (cReqStatus.equals("07")){
+    		 str1=reGet_VLNNumber(sV,sM);
+    		 str=str1;
+		 }else {
+			 str="Error";
+		 }
+    	 
+    	 if (str.equals("Error")){
+    		 str=Get_VLNNumber(sV,sM);
+		 }
+    	 
+    	 if (!str.equals("Error")){
+    		 logger.info("Process_VLNString:"+str+","+sM);
+    		 vln.add(str+","+sM);
+    		 sE="0";
+		 }else { 
+			 sE="1";
+			 break;
+		 }
+    	 
   }   return sE;
     }
       //Check_S2T_IMSI
@@ -3220,6 +3454,7 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
        String cCountryCode="",iVPLMNID="",cVLNNUMBER="null",sNumId="";
 
            Temprs=null;
+           
             sSql="Select vplmnid, countrycode,countryname from Countryinitial " +
                     "where countryinit='"+sCN+"'";
             logger.debug("MODE:"+sMo+",reGet_VLNNumber:"+sSql);
@@ -3229,6 +3464,7 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
                 cCountryCode=Temprs.getString("countrycode");
                 cCountryName=Temprs.getString("countryname");
             }
+            
            if (sMo.equals("A")){
             Temprs=null;
             cVLNNUMBER="null";
@@ -3642,6 +3878,23 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
    return sD;
 }
 
+public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws Exception{
+	cRCode = rcode;
+    logger.info("Return_Code:"+rcode);
+    outA.println("<Return_Code>");
+    outA.println(rcode);
+    outA.println("</Return_Code>");
+    outA.println("<Return_DateTime>");
+    
+    sreturnXml=sreturnXml+"<Return_Code>"+rcode+"</Return_Code><Return_DateTime>";
+    
+    outA.println(s2t.Date_Format()+s2t.Date_Format_Time());
+    
+    outA.println("</Return_DateTime>");
+    sreturnXml = sreturnXml+"</Return_DateTime>";
+    desc = Load_ResultDescription(rcode);
+}
+
      public void Query_PreProcessResult(PrintWriter outA, String rcode) throws SQLException, InterruptedException, Exception {
          cRCode = "";
          
@@ -3866,6 +4119,21 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
       catch(Exception ex){
         logger.error("JAVA Error:"+ex.toString());}
     }
+    
+    public void Send_AlertMail2(String content){
+        try{
+        String Smailserver=s2tconf.getProperty("mailserver");
+        String SFrom=s2tconf.getProperty("From");
+        String Sto=s2tconf.getProperty("RDGroup");
+        String SSubject,SmessageText;
+        SSubject=dReqDate+"-"+cTicketNumber+"-"+cTWNLDMSISDN+"-"+cReqStatus+
+                " Error:"+cRCode;
+        SmessageText = content;        
+          s2t.SendAlertMail(Smailserver, SFrom, Sto, SSubject, SmessageText);
+           logger.info("Send Mail Content:"+SmessageText);}
+        catch(Exception ex){
+          logger.error("JAVA Error:"+ex.toString());}
+      }
 
     public void read_xml(Document doc){
             NodeList nodes;
@@ -3911,34 +4179,34 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
                     Sparam = Sparam + "," + nodes.item(0).getNodeName() + "=" + cReqStatus;
                 } else if(TagName.equals("Addon_Service")) {   
                 	nodes = doc.getElementsByTagName("Addon_Item");
-                	
-                    for(int i = 0; i < nodes.getLength(); i++) {
-                    	Node itemNode = nodes.item(0);
+                	if(nodes!=null && nodes.getLength()>0){
+                		for(int i = 0; i < nodes.getLength(); i++) {
+                        	Node itemNode = nodes.item(i);
 
-                    	if(itemNode.getNodeType() == Node.ELEMENT_NODE) {
-                    		
-                           Element first = (Element)itemNode;
-                    	   NodeList codeNode = first.getElementsByTagName("Addon_Code");
-                           Element codeElement = (Element)codeNode.item(0);
-                           NodeList codeNodeList = codeElement.getChildNodes();
-                           
-                           //20140919 Add 讀取到SX000時不取資料
-                           if("SX000".equalsIgnoreCase(((Node)codeNodeList.item(0)).getNodeValue().trim())){
-                        	   logger.info("Give up SX000 Data...");
-                        	   cAddonCode="";
-                        	   continue;
-                           }
+                        	if(itemNode.getNodeType() == Node.ELEMENT_NODE) {
+                        		
+                               Element first = (Element)itemNode;
+                        	   NodeList codeNode = first.getElementsByTagName("Addon_Code");
+                               Element codeElement = (Element)codeNode.item(0);
+                               NodeList codeNodeList = codeElement.getChildNodes();
+                               
+                               //20140919 Add 當是18時，讀取到SX000時不取資料
+                               if("18".equals(cReqStatus)&& "SX000".equalsIgnoreCase(((Node)codeNodeList.item(0)).getNodeValue().trim())){
+                            	   logger.info("Give up SX000 Data...");
+                            	   continue;
+                               }
 
-                           cAddonCode = ((Node)codeNodeList.item(0)).getNodeValue().trim();
-                           Sparam = Sparam + "," + codeNode.item(0).getNodeName() + "=" + cAddonCode;
+                               cAddonCode = ((Node)codeNodeList.item(0)).getNodeValue().trim();
+                               Sparam = Sparam + "," + codeNode.item(0).getNodeName() + "=" + cAddonCode;
 
-                           NodeList actionNode = first.getElementsByTagName("Addon_Action");
-                           Element actionElement = (Element)actionNode.item(0);
-                           NodeList actionNodeList = actionElement.getChildNodes();
-                           cAddonAction = ((Node)actionNodeList.item(0)).getNodeValue().trim();  
-                           Sparam = Sparam + "," + actionNode.item(0).getNodeName() + "=" + cAddonAction;
-                    	}
-                    }
+                               NodeList actionNode = first.getElementsByTagName("Addon_Action");
+                               Element actionElement = (Element)actionNode.item(0);
+                               NodeList actionNodeList = actionElement.getChildNodes();
+                               cAddonAction = ((Node)actionNodeList.item(0)).getNodeValue().trim();  
+                               Sparam = Sparam + "," + actionNode.item(0).getNodeName() + "=" + cAddonAction;
+                        	}
+                        }
+                	}
                 } else if (TagName.equals("VLN_Country")) {
                     nodes = doc.getElementsByTagName("VLN_Country");
                     if (nodes.item(0).getFirstChild() != null) {
@@ -3954,13 +4222,13 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
                 }
             }
             
-            logger.info("Tag:" + Sparam);
+            //logger.info("Tag:" + Sparam);
             
     }
 
     public void send_SMS(String VARREALMSG1){
+    	
         try {
-           logger.debug("SMS:" + VARREALMSG1);
             VARREALMSG1 = new String(VARREALMSG1.getBytes("BIG5"), "ISO-8859-1");
             sSql = "INSERT INTO MESSAGETASK (MESSAGETASKID, TYPE, SUBSIDIARYID, " +
                     "SERVICEID," + " SERVICECODE, SERVICETYPE, CONTROLFLAG, PRIORITY," +
@@ -3973,9 +4241,11 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
             logger.debug("SMS:" + sSql);
             s2t.Inster(sSql);
         } catch (SQLException ex) {
+        	logger.error("SQLException",ex);
             java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
             sErrorSQL+=sSql;
         } catch (UnsupportedEncodingException ex) {
+        	logger.error("UnsupportedEncodingException",ex);
             java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
     }
@@ -3994,10 +4264,12 @@ public String Load_ResultDescription(String sDecs) throws SQLException {
             logger.debug("SMS:" + sSql);
             s2t.Inster(sSql);
         } catch (SQLException ex) {
+        	logger.error("SQLException",ex);
             java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
             sErrorSQL+=sSql;
         } catch (UnsupportedEncodingException ex) {
-            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        	logger.error("UnsupportedEncodingException",ex);
+        	java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
     }
 

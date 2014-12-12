@@ -7,13 +7,22 @@ and open the template in the editor.
   <head>
     <title></title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <script src="http://code.jquery.com/jquery-latest.js"></script>
+    <script type="text/javascript">
+    $(document).ready(function(){
+    	    var today = new Date();
+    	    var req_time = ""+today.getFullYear()+(today.getMonth()+1)+today.getDate()+today.getHours()+today.getMinutes()+today.getMinutes();
+    	    document.getElementsByName("Req_DateTime")[0].value = req_time;
+    	    document.getElementsByName("Ticket_Number")[0].value = 'Y'+req_time; 
+    	});
+    </script>
   </head>
   <body>
          <form action="Post" method="POST">  
        <!--   <form action="TWNLDprovision" method="POST">n  -->
       
-      Req_DateTime：<input type="text" name="Req_DateTime" value="20140627181530"><br />
-      Ticket_Number：<input type="text" name="Ticket_Number" value="Y20140627181530"><br />
+      Req_DateTime：<input type="text" name="Req_DateTime"><br />
+      Ticket_Number：<input type="text" name="Ticket_Number" ><br />
       TWNLD_IMSI：<input type="text" name="TWNLD_IMSI" value="466923301800317"><br />
       TWNLD_MSISDN：<input type="text" name="TWNLD_MSISDN" value="886975627679"><br />
       S2T_IMSI：<input type="text" name="S2T_IMSI" value="454120260200190"><br />
@@ -25,6 +34,8 @@ and open the template in the editor.
       -->
       Addon_Code：<input type="text" name="Addon_Code" value="SX001"><br />
       Addon_Action：<input type="text" name="Addon_Action" value="A"><br />
+      Addon_Code：<input type="text" name="Addon_Code" ><br />
+      Addon_Action：<input type="text" name="Addon_Action" ><br />
       VLN_Country：<input type="text" name="VLN_Country" value="CHNA"><br />
       GPRS_Status：<input type="text" name="GPRS_Status" value="0"><br />
       IP&Port：<input type="text" name="IPP" value="192.168.200.19:8176"><br />

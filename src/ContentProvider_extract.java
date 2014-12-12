@@ -9,6 +9,9 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -80,7 +83,7 @@ public class ContentProvider_extract {
 	        }
 	}
 	
-	public void doProvider() throws UnsupportedEncodingException{
+	public String doProvider() throws UnsupportedEncodingException{
 		logger.debug("doProvider");
 		
 		String response = "";
@@ -90,11 +93,11 @@ public class ContentProvider_extract {
 			data=loadPostData();
 			response = sendPost(data);
 			logger.info("response:"+response);
-			System.out.println("response:"+response);
 		}else{
 			eMeg="Record is null";
 			Send_AlertMail();
 		}
+		return response;
 	}
 	
 	public void Send_AlertMail(){
@@ -163,7 +166,10 @@ public class ContentProvider_extract {
 		    
 		    //Send Request
 		    logger.debug("Send Request");
-		    String postData = URLEncoder.encode(parameter, UTF_8);
+		    //20141212
+		    //String postData = URLEncoder.encode(parameter, UTF_8);
+		    String postData = parameter;
+		    
 		    OutputStream out = connection.getOutputStream();
 		    logger.debug("Write PostData:"+postData);
 		    out.write(postData.getBytes());
@@ -211,12 +217,59 @@ public class ContentProvider_extract {
 		ACTION = rc.getADDON_ACTION();;
 		
 		String postData = "VERSION=" + VERSION + AMPERSAND + "MSISDN=" + MSISDN + AMPERSAND + 
-		              "IMSI=" + IMSI + AMPERSAND + "DATA_TIME=" + DATE_TIME + AMPERSAND +
+		              "IMSI=" + IMSI + AMPERSAND + "DATE_TIME=" + dString() + AMPERSAND +
 		              "VENDOR=" + VENDOR  + AMPERSAND + "ACTION=" + ACTION + AMPERSAND +
 		              "PLAN=" + PLAN;
 		
 		logger.debug("postData:"+postData);
 		
 		return postData;
+	}
+	
+	private static String dString(){
+		SimpleDateFormat sdf = new SimpleDateFormat("dd---yyyy.HH:mm:ss");
+		String dString=sdf.format(new Date());
+		int dm=Calendar.getInstance().get(Calendar.MONTH)+1;
+		switch(dm){
+			case 1:
+				dString=dString.replaceAll("---", "-JAN-");//Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec
+				break;
+			case 2:
+				dString=dString.replaceAll("---", "-FEB-");
+				break;
+			case 3:
+				dString=dString.replaceAll("---", "-MAR-");
+				break;
+			case 4:
+				dString=dString.replaceAll("---", "-APR-");
+				break;
+			case 5:
+				dString=dString.replaceAll("---", "-MAY-");
+				break;
+			case 6:
+				dString=dString.replaceAll("---", "-JUN-");
+				break;
+			case 7:
+				dString=dString.replaceAll("---", "-JUL-");
+				break;
+			case 8:
+				dString=dString.replaceAll("---", "-AUG-");
+				break;
+			case 9:
+				dString=dString.replaceAll("---", "-SEP-");
+				break;
+			case 10:
+				dString=dString.replaceAll("---", "-OCT-");
+				break;
+			case 11:
+				dString=dString.replaceAll("---", "-NOV-");
+				break;
+			case 12:
+				dString=dString.replaceAll("---", "-DEC-");
+				break;
+			default:
+		}
+		
+		return dString;
 	}
 }
