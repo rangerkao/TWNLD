@@ -1963,6 +1963,10 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     }
 
     public void RCode_000(PrintWriter outA) throws ClassNotFoundException, IOException, Exception{
+    	
+    	//20141216 add
+    	boolean smsCho=true;
+    	
     	String sMd = "";
     	String VARREALMSG = "";
 	    String PACKAGE = "";
@@ -1971,10 +1975,10 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 	    if(cReqStatus.equals("18")) {
 	       if(cAddonCode.equals("SX001")) {
 	          PACKAGE = "香港上網包";
-		      PAYMENT = "NT$599";
+		      PAYMENT = "NTD599";
 	       } else if(cAddonCode.equals("SX002")) {
 		      PACKAGE = "香港+大陸上網包";
-		      PAYMENT = "NT$999";
+		      PAYMENT = "NTD999";
 	       }
 
 	       if(cAddonAction.equals("A")) {
@@ -1994,7 +1998,11 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
               VARREALMSG += "服務已經依您選擇完成退租。日後如有需要歡迎隨時加選。環球卡感謝您！";
 	       }
 	       
-	       send_SMS(VARREALMSG);
+	       if(smsCho)send_SMS(VARREALMSG);
+	    	else send_SMS1(VARREALMSG);
+	    	smsCho=!smsCho;
+	       
+	       //send_SMS(VARREALMSG);
 
 	       /*****************   Query starts here  ********************/
 	       /* sSql = "update XXX set XXX ='" + cAddonAction + "' where XXX = ''";   ****/
@@ -2024,7 +2032,8 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 	       ReRunStatus_17(outA);*/
 	       
 	       //20140924 add
-	       logger.info("Run ContentProvider_extract");
+	       //20141215 cancel
+	       /*logger.info("Run ContentProvider_extract");
 	       Record rc=new Record(cS2TIMSI,cS2TMSISDN.substring(3,cS2TMSISDN.length()),cAddonAction);
 	       
 	       ContentProvider_extract ce=new ContentProvider_extract(getServletContext().getRealPath("/"),rc);
@@ -2035,7 +2044,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 	       if(!"200".equals(response)){
 	    	   Send_AlertMail2("Addon Error : IMSI="+cS2TIMSI+" MSISDN:"+cS2TMSISDN.substring(3,cS2TMSISDN.length())+
 	    			   " Action="+cAddonAction+" response="+response);
-	       }
+	       }*/
 	       
         }
 
@@ -2046,13 +2055,17 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     	   outA.println("</GPRS_Status>");
          
     	   VARREALMSG="";
-    	   VARREALMSG+="親愛的中華電信客戶：您開通「環球卡」服務。香港副號為 +"+cS2TMSISDN;
-    	   VARREALMSG+="。在您抵達香港重新開機後，副號將顯示在手機上。請務必觀看環球卡撥號方式說明影片：  http://goo.gl/sUSCHa。";
+    	   VARREALMSG+="親愛的中華客戶：您開通的「環球卡」香港副號為+"+cS2TMSISDN;
+    	   VARREALMSG+="。在您抵達香港重新開機後，副號將顯示在手機上。請務必觀看環球卡撥號方式說明影片： http://goo.gl/sUSCHa。";
     	   VARREALMSG+="香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！";
     	   
     	   
     	   //20141205 add
-    	   send_SMS(VARREALMSG);
+    	   //send_SMS(VARREALMSG);
+    	   
+    	   if(smsCho)send_SMS(VARREALMSG);
+	    	else send_SMS1(VARREALMSG);
+	    	smsCho=!smsCho;
     	   
     	   outA.println("<VLN>");
     	   sreturnXml=sreturnXml+"<GPRS_Status>"+cGPRS+"</GPRS_Status><VLN>";
@@ -2072,6 +2085,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     			 sAllVln=sAllVln+sVln+cVLNc+",";
     			
     			 if(sMd.equals("A")) {
+    				 
     			    iVLN=0;
     				sSql="update availableVLN set Status='U',lastupdatetime=sysdate where "+
     						"VLNNUMBER='"+cVLNc+"'";
@@ -2098,210 +2112,270 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     			    	//iVLN=iVLN+1;
     				    //VARREALMSG=VARREALMSG+"瑞典副號碼為 +"+cVLNc+"，";
     			    	cV="瑞典";
-    			    }
+    			    	
+    			    	//20141216 add
+    			    }else if (sVln.equals("THA")){
+    					cV="泰國";
+    				}else if (sVln.equals("IDN")){
+    					cV="印尼";
+    				}
     				
     				if(!"".equals(cV)){
     					VARREALMSG="親愛的中華客戶：您開通的「環球卡」"+cV+"副號為+"+cVLNc+"。"
-    							+ "在您抵達中國重新開機後，副號將顯示在手機上。香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！";
-    					send_SMS(VARREALMSG);
+    							+ "在您抵達"+cV+"重新開機後，副號將顯示在手機上。香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！";
+    					//send_SMS(VARREALMSG);
+    					if(smsCho)send_SMS(VARREALMSG);
+    			    	else send_SMS1(VARREALMSG);
+    			    	smsCho=!smsCho;
     				}
-    					
-    				
-    				
-    		     } else if(sMd.equals("D")) {
+    			 }else if(sMd.equals("D")) {
     			    sSql="update availableVLN set Status='T',lastupdatetime=sysdate,s2tmsisdn=''"+
     					" where VLNNUMBER='"+cVLNc+"'";
     			    s2t.Update(sSql);
     		     }
-    	      }
+    		  }
     		
     		  sAllVln=sAllVln.substring(0, sAllVln.length()-1);
     		  outA.println(sAllVln);
     		  sreturnXml=sreturnXml+sAllVln;
-    	  } 
+    	  }
     	   
-         sSql="update availableMSISDN set status='U',lastupdatetime=sysdate,"+
+    	   sSql="update availableMSISDN set status='U',lastupdatetime=sysdate,"+
               "partnermsisdn='"+cTWNLDMSISDN+"' Where mnosubcode='"+sMNOSubCode+"' And "+
               "s2tmsisdn='"+cS2TMSISDN+"'" ;
+    	   
+    	   logger.debug("ReqStatus[00-MSISDN]:"+sSql);
+    	   s2t.Update(sSql);
          
-         logger.debug("ReqStatus[00-MSISDN]:"+sSql);
-         s2t.Update(sSql);
          
+	         //20141205 mark
+	        /* if(iVLN > 0) {
+	        	 VARREALMSG=VARREALMSG+"您現在就可以通知您當地的朋友打這個電話與您聯絡了！";
+	         } else {
+	        	 VARREALMSG=VARREALMSG+"您現在就可以通知您香港的朋友打這個電話與您聯絡了！";
+	         }
+	         
+	         VARREALMSG=VARREALMSG+"副號碼會在您抵達該國時顯示在手機螢幕上，環球卡感謝您！";
+	         send_SMS(VARREALMSG);*/
          
-         //20141205 mark
-        /* if(iVLN > 0) {
-        	 VARREALMSG=VARREALMSG+"您現在就可以通知您當地的朋友打這個電話與您聯絡了！";
-         } else {
-        	 VARREALMSG=VARREALMSG+"您現在就可以通知您香港的朋友打這個電話與您聯絡了！";
-         }
+    	   VARREALMSG="提醒您：抵達當地國後請確認關閉飛航模式並重新開機，依照螢幕指示按下\"確定\"，環球卡將切換為當地門號。";
          
-         VARREALMSG=VARREALMSG+"副號碼會在您抵達該國時顯示在手機螢幕上，環球卡感謝您！";
-         send_SMS(VARREALMSG);*/
-         
-         VARREALMSG="提醒您：抵達當地國後請確認關閉飛航模式並重新開機，依照螢幕指示按下\"確定\"，環球卡將切換為當地門號。";
-         
-         send_SMS1(VARREALMSG);
-       //20141205 mark
-         /*VARREALMSG="若您使用的是Symbian作業系統手機(例如NOKIA的N系列或E系列手機)搭配環球卡，"+
-                 "請主動更改SIM卡型態設定：功能表>工具>環球卡>初始設定>改為Type1。";
-         send_SMS(VARREALMSG);*/
-        
-         outA.println("</VLN>");
+    	   //send_SMS1(VARREALMSG);
+    	   if(smsCho)send_SMS(VARREALMSG);
+	    	else send_SMS1(VARREALMSG);
+	    	smsCho=!smsCho;
+	    	
+	       //20141205 mark
+	         /*VARREALMSG="若您使用的是Symbian作業系統手機(例如NOKIA的N系列或E系列手機)搭配環球卡，"+
+	                 "請主動更改SIM卡型態設定：功能表>工具>環球卡>初始設定>改為Type1。";
+	         send_SMS(VARREALMSG);*/
+	        
+	         outA.println("</VLN>");
     	
-         if (cGPRS.equals("1")) {
-        	 VARREALMSG="親愛的中華客戶：您已開通環球卡數據服務，請先將手機數據漫遊功能開啟，在行動網路設定APN 為\"CMHK\"。"
-        	 		+ "除中國、香港、澳門有每日收費上限外，其餘國家按實際用量收費，不提供吃到飽方案，請謹慎使用。另有香港/大陸月租上網吃到飽服務，歡迎加選。";
-        
-        	 send_SMS(VARREALMSG);
-        	 
-        	 VARREALMSG="親愛的環球卡用戶，本公司為協助您控管漫遊上網費用，漫遊上網服務每月費用超過NTD5,000時將自動關閉。"
-        	 		+ "如您不希望因超出使用金額而被關閉上網服務，請至www.sim2travel.com/chtm/5k.pdf "
-        	 		+ "下載約定書，或輸入以下內容「請將本人排除此規定」回覆至+886972900154，本公司將為您列入VIP名單，不會在超過額度時自動斷網。"
-        	 		+ "如需諮詢請電客服+{{customerService}}。";
-        	 
-        	 VARREALMSG=replaceCSPhone(VARREALMSG);
-         
-         	 send_SMS1(VARREALMSG);
-         
-         }
-         
-         
-         
+	         if (cGPRS.equals("1")) {
+	        	 VARREALMSG="親愛的中華客戶：您已開通環球卡數據服務，請先將手機數據漫遊功能開啟，在行動網路設定APN 為\"CMHK\"。"
+	        	 		+ "除中國、香港、澳門有每日收費上限外，其餘國家按實際用量收費，不提供吃到飽方案，請謹慎使用。另有香港/大陸月租上網吃到飽服務，歡迎加選。";
+	        
+	        	 //send_SMS(VARREALMSG);
+	        	 if(smsCho)send_SMS(VARREALMSG);
+	 	    	else send_SMS1(VARREALMSG);
+	 	    	smsCho=!smsCho;
+	        	 
+	        	 VARREALMSG="親愛的環球卡用戶，本公司為協助您控管漫遊上網費用，漫遊上網服務每月費用超過NTD5,000時將自動關閉。"
+	        	 		+ "如您不希望因超出使用金額而被關閉上網服務，請至www.sim2travel.com/chtm/5k.pdf "
+	        	 		+ "下載約定書，或輸入以下內容「請將本人排除此規定」回覆至+886972900154，本公司將為您列入VIP名單，不會在超過額度時自動斷網。"
+	        	 		+ "如需諮詢請電客服+{{customerService}}。";
+	        	 
+	        	 VARREALMSG=replaceCSPhone(VARREALMSG);
+	         
+	         	 //send_SMS1(VARREALMSG);
+	        	 if(smsCho)send_SMS(VARREALMSG);
+	 	    	else send_SMS1(VARREALMSG);
+	 	    	smsCho=!smsCho;
+	         
+	         }
     	 }
         
     	if ((cReqStatus.equals("97"))||(cReqStatus.equals("98"))) {
-         outA.println("<GPRS_Status>");
-         outA.println(cGPRS);
-         outA.println("</GPRS_Status>");
-        outA.println("<VLN>");
-        sreturnXml=sreturnXml+"<GPRS_Status>"+cGPRS+"</GPRS_Status><VLN>";
-        
-        if (vln.size()>0){
-            sAllVln="";
-        vln.firstElement();
-          
-        for (n=0; n<vln.size();n++){
-            sVln=vln.get(n);
-             y=sVln.indexOf(",");
-             sVln=sVln.substring(y+1,sVln.length());
-             y=sVln.indexOf(",");
-             cVLNc=sVln.substring(0, y);
-             sMd=sVln.substring(sVln.length()-1,sVln.length());
-             sVln=sVln.substring(y+1,sVln.length()-2);
-             sAllVln=sAllVln+sVln+cVLNc+",";
+    		outA.println("<GPRS_Status>");
+    		outA.println(cGPRS);
+    		outA.println("</GPRS_Status>");
+    		outA.println("<VLN>");
+    		sreturnXml=sreturnXml+"<GPRS_Status>"+cGPRS+"</GPRS_Status><VLN>";
+    		
+    		if (vln.size()>0){
+    			sAllVln="";
+    			vln.firstElement();
+    			
+    			for (n=0; n<vln.size();n++){
+    				sVln=vln.get(n);
+    				y=sVln.indexOf(",");
+    				sVln=sVln.substring(y+1,sVln.length());
+    				y=sVln.indexOf(",");
+    				cVLNc=sVln.substring(0, y);
+    				sMd=sVln.substring(sVln.length()-1,sVln.length());
+    				sVln=sVln.substring(y+1,sVln.length()-2);
+    				sAllVln=sAllVln+sVln+cVLNc+",";
+    			}
+    			
+    			sAllVln=sAllVln.substring(0, sAllVln.length()-1);
+    			outA.println(sAllVln);
+    			sreturnXml=sreturnXml+sAllVln;
+    		}
+
+	        outA.println("</VLN>");
+	        outA.println("<Addon_Service>");
+	        outA.println("</Addon_Service>");
+	        sreturnXml=sreturnXml+"</VLN><Addon_Service></Addon_Service>";
         }
-        
-        sAllVln=sAllVln.substring(0, sAllVln.length()-1);
-        outA.println(sAllVln);
-        sreturnXml=sreturnXml+sAllVln;
-		}
-		
-		
-        outA.println("</VLN>");
-        outA.println("<Addon_Service>");
-        outA.println("</Addon_Service>");
-        sreturnXml=sreturnXml+"</VLN><Addon_Service></Addon_Service>";
+    	
+    	if (cReqStatus.equals("99")){
+    		sSql="update availableVLN set Status='Z',lastupdatetime=sysdate, "
+    				+ "s2tmsisdn='' where s2tmsisdn='"+cS2TMSISDN+"'";
+    		logger.info("ReqStatus[99-VLN]:"+sSql);
+    		
+    		s2t.Update(sSql);
+    		
+            sSql="update availablemsisdn set Status='Z',lastupdatetime="+
+                    "sysdate,partnermsisdn=''"+
+             " where s2tmsisdn='"+cS2TMSISDN+"'";
+            
+            logger.info("ReqStatus[99-VLN]:"+sSql);
+            
+            s2t.Update(sSql);
         }
-          if (cReqStatus.equals("99")){
-              sSql="update availableVLN set Status='Z',lastupdatetime=sysdate,"+
-                      "s2tmsisdn='' where s2tmsisdn='"+cS2TMSISDN+"'";
-              logger.info("ReqStatus[99-VLN]:"+sSql);
-                 s2t.Update(sSql);
-                sSql="update availablemsisdn set Status='Z',lastupdatetime="+
-                        "sysdate,partnermsisdn=''"+
-                 " where s2tmsisdn='"+cS2TMSISDN+"'";
-                logger.info("ReqStatus[99-VLN]:"+sSql);
-                       s2t.Update(sSql);
-        }
+    	
+    	
         if (cReqStatus.equals("07")) {
         	
+        	if (vln.size()>0){
+        		vln.firstElement();
+        		
+        		for (n=0; n<vln.size();n++){
+        			sVln=vln.get(n);
+        			y=sVln.indexOf(",");
+        			sVln=sVln.substring(y+1,sVln.length());
+        			y=sVln.indexOf(",");
+        			cVLNc=sVln.substring(0, y);
+        			sMd=sVln.substring(sVln.length()-1,sVln.length());
+        			sVln=sVln.substring(y+1,sVln.length()-2);
+        			
+        			if (sMd.equals("A")) {
+        				sSql="update availableVLN set Status='U',lastupdatetime=sysdate where "
+        						+ "VLNNUMBER='"+cVLNc+"'";
+        				
+        				s2t.Update(sSql);
+        				
+        				String cV="";
+        				
+        				if (sVln.equals("CHN")){
+        					cV="中國";
+        					//VARREALMSG=VARREALMSG+cV+"副號碼為 +"+cVLNc+"。";
+        				}else if (sVln.equals("SGP")){
+        					cV="新加坡";
+        					//VARREALMSG=VARREALMSG+cV+"副號碼為 +"+cVLNc+"。";
+        				}else if (sVln.equals("SWE")){
+        					cV="瑞典";
+        					//VARREALMSG=VARREALMSG+cV+"副號碼為 +"+cVLNc+"。";
+        					
+        					//20141216 add
+        				}else if (sVln.equals("THA")){
+        					cV="泰國";
+        				}else if (sVln.equals("IDN")){
+        					cV="印尼";
+        				}
+        				
+        				if(!"".equals(cV)){
+        					VARREALMSG="親愛的中華客戶：您開通的「環球卡」"+cV+"副號為+"+cVLNc+"。"
+        							+ "在您抵達中國重新開機後，副號將顯示在手機上。香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！";
+        					
+        					//send_SMS(VARREALMSG);
+        					if(smsCho)send_SMS(VARREALMSG);
+        			    	else send_SMS1(VARREALMSG);
+        			    	smsCho=!smsCho;
+        				}
+        				
+        			}else if (sMd.equals("D")) {
+        				sSql="update availableVLN set Status='Z',lastupdatetime=sysdate,s2tmsisdn='' "
+        						+ "where VLNNUMBER='"+cVLNc+"'";
+        				
+        				s2t.Update(sSql);
+        			}
+        		}
+        	}
         	
-
-        if (vln.size()>0){
-        vln.firstElement();
-          for (n=0; n<vln.size();n++){
-            sVln=vln.get(n);
-             y=sVln.indexOf(",");
-             sVln=sVln.substring(y+1,sVln.length());
-             y=sVln.indexOf(",");
-             cVLNc=sVln.substring(0, y);
-             sMd=sVln.substring(sVln.length()-1,sVln.length());
-             sVln=sVln.substring(y+1,sVln.length()-2);
-        if (sMd.equals("A")) {
-      sSql="update availableVLN set Status='U',lastupdatetime=sysdate where "+
-              "VLNNUMBER='"+cVLNc+"'";
-      s2t.Update(sSql);
-      
-      String cV="";
-      
-             if (sVln.equals("CHN")){
-            	 cV="中國";
-            	 //VARREALMSG=VARREALMSG+cV+"副號碼為 +"+cVLNc+"。";
-            	 }
-             else if (sVln.equals("SGP")){
-            	 cV="新加坡";
-            	 //VARREALMSG=VARREALMSG+cV+"副號碼為 +"+cVLNc+"。";
-            	 }
-             else if (sVln.equals("SWE")){
-            	 cV="瑞典";
-            	 //VARREALMSG=VARREALMSG+cV+"副號碼為 +"+cVLNc+"。";
-            	 }
-             
-             if(!"".equals(cV)){
-					VARREALMSG="親愛的中華客戶：您開通的「環球卡」"+cV+"副號為+"+cVLNc+"。"
-							+ "在您抵達中國重新開機後，副號將顯示在手機上。香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！";
-					send_SMS(VARREALMSG);
-				}
-        }	
-      else if (sMd.equals("D")) {
-      sSql="update availableVLN set Status='Z',lastupdatetime=sysdate,s2tmsisdn=''"+
-              " where VLNNUMBER='"+cVLNc+"'";
-      s2t.Update(sSql);}
+	        //20141205 mark
+	        /*if (VARREALMSG.length()>0){
+	        VARREALMSG="親愛的環球卡客戶：您新開通的 "+VARREALMSG+"您現在就可以通知您當地的朋友"+
+	                "打這個電話與您聯絡了！副號碼會在您抵達當地重新開機後，副號將顯示在手機上。香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！";
+	         send_SMS(VARREALMSG);
+	        }*/
+        	
+        	TempRt=null;
+        	
+	        sSql="SELECT b.countryinit||a.vln as ab FROM vlnnumber a, " +
+	                "COUNTRYINITIAL b WHERE a.vplmnid=b.vplmnid "
+	                + "AND a.serviceid = (SELECT MAX(Serviceid) FROM imsi WHERE homeimsi = '"+cTWNLDIMSI+"')";
+	        
+	        TempRt=s2t.Query(sSql);
+	        
+	        while (TempRt.next()){
+	        	sVln=TempRt.getString("ab");
+	        	sAllVln=sAllVln+sVln+",";
+	        }
+	        
+	        if (sAllVln.length()>2){
+	        	sAllVln=sAllVln.substring(0, sAllVln.length()-1);
+	        }else {
+	        	sAllVln="";
+	        }
+	        
+	        outA.println("<VLN>");
+	        outA.println(sAllVln);
+	        outA.println("</VLN>");
+	        
+	        sreturnXml=sreturnXml+"<VLN>"+sAllVln+"</VLN>";
+	     
         }
+        
+        
+        if (cReqStatus.equals("05")) {
+        	sSql="update availablemsisdn set partnermsisdn='"+cTWNLDMSISDN+
+        		"',lastupdatetime=sysdate where partnermsisdn='"+cOldTWNLDMSISDN+"'";
+        	
+        	logger.debug("ReqStatus[05]:"+sSql);
+        	s2t.Update(sSql);
         }
-        //20141205 mark
-        /*if (VARREALMSG.length()>0){
-        VARREALMSG="親愛的環球卡客戶：您新開通的 "+VARREALMSG+"您現在就可以通知您當地的朋友"+
-                "打這個電話與您聯絡了！副號碼會在您抵達當地重新開機後，副號將顯示在手機上。香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！";
-         send_SMS(VARREALMSG);
-        }*/
-        TempRt=null;
-        sSql="SELECT b.countryinit||a.vln as ab FROM vlnnumber a, " +
-                "COUNTRYINITIAL b WHERE a.vplmnid=b.vplmnid"+
-" AND a.serviceid = (SELECT MAX(Serviceid) FROM imsi WHERE homeimsi = '"+
-                cTWNLDIMSI+"')";
-        TempRt=s2t.Query(sSql);
-                while (TempRt.next()){sVln=TempRt.getString("ab");
-                        sAllVln=sAllVln+sVln+",";}
-        if (sAllVln.length()>2){
-        sAllVln=sAllVln.substring(0, sAllVln.length()-1);}
-        else {sAllVln="";}
-        outA.println("<VLN>");
-        outA.println(sAllVln);
-        outA.println("</VLN>");
-        sreturnXml=sreturnXml+"<VLN>"+sAllVln+"</VLN>";
-        }
-     if (cReqStatus.equals("05")) {
-         sSql="update availablemsisdn set partnermsisdn='"+cTWNLDMSISDN+
-              "',lastupdatetime=sysdate where partnermsisdn='"+cOldTWNLDMSISDN+"'";
-         logger.debug("ReqStatus[05]:"+sSql);
-        s2t.Update(sSql);
-     }
-       if (cReqStatus.equals("17")){
-          if (cGPRS.equals("1")){
-        /*VARREALMSG="出國使用環球卡數據服務功能時，須先將數據漫遊功能開啟，並且在網路的APN"+
-                "欄位輸入[peoples.net[。漫遊數據服務依照用量計價，並無收費上限與吃到飽方案，"+
-                "請斟酌使用。";*/
-        	  VARREALMSG="親愛的環球卡用戶，本公司為協助您控管漫遊上網費用，漫遊上網服務每月費用達約NTD5,000時將自動關閉。"
+        
+        if (cReqStatus.equals("17")){
+        	if (cGPRS.equals("1")){
+		        /*VARREALMSG="出國使用環球卡數據服務功能時，須先將數據漫遊功能開啟，並且在網路的APN"+
+		                "欄位輸入[peoples.net[。漫遊數據服務依照用量計價，並無收費上限與吃到飽方案，"+
+		                "請斟酌使用。";*/
+        		
+        		VARREALMSG="親愛的中華客戶：您已開通環球卡數據服務，請先將手機數據漫遊功能開啟，在行動網路設定APN 為\"CMHK\"。"
+        				+ "除中國、香港、澳門有每日收費上限外，其餘國家按實際用量收費，不提供吃到飽方案，請謹慎使用。"
+        				+ "另有香港/大陸月租上網吃到飽服務，歡迎加選。";
+        		
+        		//send_SMS(VARREALMSG);
+        		if(smsCho)send_SMS(VARREALMSG);
+    	    	else send_SMS1(VARREALMSG);
+    	    	smsCho=!smsCho;
+		        
+		        
+        		VARREALMSG="親愛的環球卡用戶，本公司為協助您控管漫遊上網費用，漫遊上網服務每月費用達約NTD5,000時將自動關閉。"
         	  		+ "如您不希望因超出使用金額而被關閉上網功能，影響您的商務進行，請至www.sim2travel.com/chtm/5k.pdf"
         	  		+ "下載約定書，或輸入以下內容回覆本簡訊「請將本人排除此規定」，本公司將為您列入VIP名單，不會在超過額度時自動斷網。"
         	  		+ "如需諮詢請電客服+{{customerService}}。";
-        	  
-        	  VARREALMSG=replaceCSPhone(VARREALMSG);
-        	  
-        	  
-        send_SMS(VARREALMSG);
-        }}
+        		
+        		VARREALMSG=replaceCSPhone(VARREALMSG);
+        		
+        		//send_SMS1(VARREALMSG);
+        		if(smsCho)send_SMS(VARREALMSG);
+    	    	else send_SMS1(VARREALMSG);
+    	    	smsCho=!smsCho;
+        	}
+        }
     }
     
     
@@ -2319,7 +2393,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     	  }
 
     	  if(cphone==null)cphone="";
-    	  msg=msg.replaceAll("{{customerService}}", cphone);
+    	  msg=msg.replace("{{customerService}}", cphone);
     	  
     	  return msg;
     }
@@ -3676,7 +3750,7 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
         vln.removeAllElements();
          Temprs=null;
          sSql="SELECT b.homeimsi as homeimsi, b.imsi as imsi,CASE a.status WHEN '1' " +
-                 "THEN '1'"+
+              "THEN '1'"+
               " WHEN '3' THEN '0' WHEN '4' THEN '2' "+
               " WHEN '10' THEN '2' END as status,a.servicecode as ab"+
               " FROM service a,IMSI b"+
@@ -3684,6 +3758,7 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
               "(SELECT Serviceid FROM followmedata WHERE followmenumber ='"+
               cTWNLDMSISDN+"')"+
               " AND a.serviceid=b.serviceid and (a.status=1 or a.status=3)";
+         
          logger.debug("Query_ByPartnerMSISDN:"+sSql);
          Temprs=s2t.Query(sSql);
          while (Temprs.next()){
@@ -3708,6 +3783,31 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
          else {cS2TMSISDN="";
         Query_PreProcessResult(outA,"211");
          }
+         
+         
+       //20141215 add
+         /*String vlnString="";
+         for(String s : vln){
+        	 vlnString+=s+",";
+         }
+         vlnString=vlnString.substring(0,vlnString.length()-1);*/
+         
+          
+         
+         sSql="SELECT A.ADDONCODE,A.ADDONACTION,to_char(A.REQUESTDATETIME,'yyyymmddhh24miss') REQUESTDATETIME " 
+         		+ "FROM ADDONSERVICE A "
+         		+ "WHERE A.ADDONCODE != 'SX000' AND A.MNOMSISDN='"+cTWNLDMSISDN+"' AND ROWNUM<=1 "
+         		+ "ORDER BY A.REQUESTDATETIME DESC";
+         Temprs=s2t.Query(sSql);
+         
+         String ccAddonCode = "",ccAddonAction = "",ccRequestDateTime = "";
+         
+         while (Temprs.next()){
+        	 ccAddonCode=Temprs.getString("ADDONCODE");
+        	 ccAddonAction=Temprs.getString("ADDONACTION");
+        	 ccRequestDateTime=Temprs.getString("REQUESTDATETIME");
+    	 }
+         
         outA.println("<TWNLD_IMSI>");
         outA.println(cTWNLDIMSI);
         outA.println("</TWNLD_IMSI>");
@@ -3723,9 +3823,27 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
         outA.println("<Status>");
         outA.println(cStatus);
         outA.println("</Status>");
+        
+        //20141215 add
+        /*outA.println("<VLN>");
+        outA.println(vlnString);
+        outA.println("</VLN>");*/
+        outA.println("<Addon_Code>");
+        outA.println(ccAddonCode);
+        outA.println("</Addon_Code>");
+        outA.println("<Addon_Action>");
+        outA.println(ccAddonAction);
+        outA.println("</Addon_Action>");
+        outA.println("<Req_DateTime>");
+        outA.println(ccRequestDateTime);
+        outA.println("</Req_DateTime>");
+        
+        
         sreturnXml=sreturnXml+"<TWNLD_IMSI>"+cTWNLDIMSI+"</TWNLD_IMSI><TWNLD_MSISDN>"+
                 cTWNLDMSISDN+"</TWNLD_MSISDN><S2T_MSISDN>"+cS2TMSISDN+"</S2T_MSISDN><S2T_IMSI>"+
-                cS2TIMSI+"</S2T_IMSI><Status>"+cStatus+"</Status>";
+                cS2TIMSI+"</S2T_IMSI><Status>"+cStatus+"</Status>"
+                /*"<VLN>"+vlnString+"</VLN>"*/
+                + "<Addon_Code>"+ccAddonCode+"</Addon_Code><Addon_Action>"+ccAddonAction+"</Addon_Action><Req_DateTime>"+ccRequestDateTime+"</Req_DateTime>"; ;
     }
 
      public void Query_GPRSStatus() throws IOException, SQLException{
@@ -3786,14 +3904,38 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
              "(SELECT MAX(Serviceid) FROM imsi WHERE homeimsi ='"+cTWNLDIMSI+"')";
         Temprs=s2t.Query(sSql);
          while (Temprs.next()){
-           cVln=Temprs.getString("ab");
-            vln.addElement(cVln);}
+        	 cVln=Temprs.getString("ab");
+        	 vln.addElement(cVln);
+    	 }
         Query_GPRSStatus();
         Query_PreProcessResult(outA,"000");}
          else {cS2TMSISDN="";
         Query_PreProcessResult(outA,"211");
         }
+         
+         //20141215 add
+         /*String vlnString="";
+         for(String s : vln){
+        	 vlnString+=","+s;
+         }
+         vlnString=vlnString.substring(0,vlnString.length()-1);*/
           
+         
+         sSql="SELECT A.ADDONCODE,A.ADDONACTION,to_char(A.REQUESTDATETIME,'yyyymmddhh24miss') REQUESTDATETIME "
+         		+ "FROM ADDONSERVICE A "
+         		+ "WHERE A.ADDONCODE != 'SX000' AND A.MNOIMSI='"+cTWNLDIMSI+"' AND ROWNUM<=1 "
+         		+ "ORDER BY A.REQUESTDATETIME DESC";
+         Temprs=s2t.Query(sSql);
+         
+         String ccAddonCode = "",ccAddonAction = "",ccRequestDateTime = "";
+         
+         while (Temprs.next()){
+        	 ccAddonCode=Temprs.getString("ADDONCODE");
+        	 ccAddonAction=Temprs.getString("ADDONACTION");
+        	 ccRequestDateTime=Temprs.getString("REQUESTDATETIME");
+    	 }
+         
+         
         outA.println("<TWNLD_IMSI>");
         outA.println(cTWNLDIMSI);
         outA.println("</TWNLD_IMSI>");
@@ -3810,6 +3952,8 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
         outA.println(cStatus);
         outA.println("</Status>");
         
+        
+        
 //        outA.println("<Addon_Service");
 //        outA.println("<Addon_Item");
 //        outA.println("<Addon_Code");
@@ -3818,9 +3962,28 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
 //        outA.println("</Addon_Item");
 //        outA.println("</Addon_Service");
         
+        //20141215 add
+        /*outA.println("<VLN>");
+        outA.println(vlnString);
+        outA.println("</VLN>");*/
+        outA.println("<Addon_Code>");
+        outA.println(ccAddonCode);
+        outA.println("</Addon_Code>");
+        outA.println("<Addon_Action>");
+        outA.println(ccAddonAction);
+        outA.println("</Addon_Action>");
+        outA.println("<Req_DateTime>");
+        outA.println(ccRequestDateTime);
+        outA.println("</Req_DateTime>");
+        
+        
+        
+        
         sreturnXml=sreturnXml+"<TWNLD_IMSI>"+cTWNLDIMSI+"</TWNLD_IMSI><TWNLD_MSISDN>"+
                 cTWNLDMSISDN+"</TWNLD_MSISDN><S2T_IMSI>"+cS2TIMSI+"</S2T_IMSI><S2T_MSISDN>"+
-                cS2TMSISDN+"</S2T_MSISDN><Status>"+cStatus+"</Status>"; 
+                cS2TMSISDN+"</S2T_MSISDN><Status>"+cStatus+"</Status>"
+                /*"<VLN>"+vlnString+"</VLN>"*/
+                		+ "<Addon_Code>"+ccAddonCode+"</Addon_Code><Addon_Action>"+ccAddonAction+"</Addon_Action><Req_DateTime>"+ccRequestDateTime+"</Req_DateTime>"; 
               //  "<Addon_Service><Addon_Item><Addon_Code>"+cAddonCode+"</Addon_Code></Addon_Item></Addon_Service>";
     }
 

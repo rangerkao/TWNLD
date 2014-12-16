@@ -11,7 +11,33 @@ and open the template in the editor.
     <script type="text/javascript">
     $(document).ready(function(){
     	    var today = new Date();
-    	    var req_time = ""+today.getFullYear()+(today.getMonth()+1)+today.getDate()+today.getHours()+today.getMinutes()+today.getMinutes();
+    	    var y = today.getFullYear().toString();
+   
+    	    for(var i =y.length ;i<4;i++){
+    	    	y="0"+y;
+    	    }
+    	    var m = (today.getMonth()+1).toString();
+    	    for(var i =m.length ;i<2;i++){
+    	    	m="0"+m;
+    	    }
+    	    var d = today.getDate().toString();
+    	    for(var i =d.length ;i<2;i++){
+    	    	d="0"+d;
+    	    }
+    	    var h = today.getHours().toString();
+    	    for(var i =h.length ;i<2;i++){
+    	    	h="0"+h;
+    	    }
+    	    var mi = today.getMinutes().toString();
+    	    for(var i =mi.length ;i<2;i++){
+    	    	mi="0"+mi;
+    	    }
+    	    var s = today.getSeconds().toString();
+    	    for(var i =s.length ;i<2;i++){
+    	    	s="0"+s;
+    	    }
+    	    
+    	    var req_time = y+m+d+h+mi+s;
     	    document.getElementsByName("Req_DateTime")[0].value = req_time;
     	    document.getElementsByName("Ticket_Number")[0].value = 'Y'+req_time; 
     	});
