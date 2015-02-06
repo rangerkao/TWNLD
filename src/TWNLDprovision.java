@@ -1066,162 +1066,202 @@ public class TWNLDprovision extends HttpServlet {
                                   Temprs=null;
                   smsi="";
                csta=Check_Pair_IMSI(cTWNLDIMSI,cS2TIMSI);
-                if (csta.equals("1")){
-                 //csta="";
-               //csta=Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
-                //if (cTWNLDMSISDN.equals("0")){
-                    csta="";
-                sSql="select count(*) as ab from imsi  where homeimsi='"+
-                        cTWNLDIMSI+"'";
-                          logger.info("Check S2T IMSI:"+sSql);
-                  Temprs=s2t.Query(sSql);
-                          while (Temprs.next()){
-                               smsi=Temprs.getString("ab");
+               
+               if (csta.equals("1")){
+            	   //csta="";
+            	   //csta=Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
+            	   //if (cTWNLDMSISDN.equals("0")){
+            	   
+            	   csta="";
+
+            	   sSql="select count(*) as ab from imsi  where homeimsi='"+cTWNLDIMSI+"'";
+            	   logger.info("Check S2T IMSI:"+sSql);
+            	   
+            	   Temprs=s2t.Query(sSql);
+            	   while (Temprs.next()){
+            		   smsi=Temprs.getString("ab");
+            	   }
+            	   
+            	   if (smsi.equals("1")){
+            		   bb=true;
+            	   } else {
+            		   bb=false;
+            	   }
+            	   
+                   if (bb==true){
+                	   //Check CHT MSISDN
+                	   bc=Validate_PartnerMSISDNRange(cTWNLDMSISDN);
+                	   
+                	   if (bc==true){
+                		   Get_GurrentS2TMSISDN();
+                		   
+                		   if (cS2TMSISDN.equals("")){
+                			   Temprs=null;
+                			   
+                			   sSql="select s2tmsisdn from availablemsisdn where partnermsisdn='"+cTWNLDMSISDN+"'";
+                			   logger.info("Find_OLDS2TMSISDN:"+sSql);
+                			   Temprs=s2t.Query(sSql);
+                			   
+                			   while (Temprs.next()){
+                				   cOLDS2TMSISDN=Temprs.getString("s2tmsisdn");
                                }
-                  if (smsi.equals("1")){bb=true;} else {bb=false;}
-                      if (bb==true){
-                        //Check CHT MSISDN
-                        bc=Validate_PartnerMSISDNRange(cTWNLDMSISDN);
-                        if (bc==true){
-                          Get_GurrentS2TMSISDN();
-                          if (cS2TMSISDN.equals("")){
-                           Temprs=null;
-       sSql="select s2tmsisdn from availablemsisdn where partnermsisdn='"+
-               cTWNLDMSISDN+"'";
-                           logger.info("Find_OLDS2TMSISDN:"+sSql);
-                           Temprs=s2t.Query(sSql);
-                          while (Temprs.next()){
-                               cOLDS2TMSISDN=Temprs.getString("s2tmsisdn");
-                               }
-                          if (!cOLDS2TMSISDN.equals("")){
-                              cS2TMSISDN=cOLDS2TMSISDN;
-                           Temprs=null;
-     sSql="select count(*) as ab FROM imsi WHERE homeimsi = '"+cTWNLDIMSI+
-             "' and status=0";
-                          logger.info("count(homeimsi):"+sSql);
-                          Temprs=s2t.Query(sSql);
-                          while (Temprs.next()){
-                               smsi=Temprs.getString("ab");
-                               }
-                          if (smsi.equals("1")){
-                            sWSFStatus="V";
-                            sWSFDStatus="V";
-                            Process_SyncFile(sWSFStatus);
-                            Process_SyncFileDtl(sWSFDStatus);
-                            Process_ServiceOrder();
-                            Process_WorkSubcode();
-                            sSql="update S2T_TB_SERVICE_ORDER set STATUS='N' "+
-                                "where SERVICE_ORDER_NBR='"+cServiceOrderNBR+"'";
-                       s2t.Update(sSql);
-                       logger.debug("update SERVICE_ORDER:"+sSql);
-                            Query_PreProcessResult(out3,"000");}
-                          else {Query_PreProcessResult(out3,"108");}
-                          }
-                          else{Query_PreProcessResult(out3,"211");}
-                          }
-                        else {iError=1;
-                         Query_PreProcessResult(out3,"200");
-                         if ("".endsWith(iErrorMsg))
+                			   
+                			   if (!cOLDS2TMSISDN.equals("")){
+                				   cS2TMSISDN=cOLDS2TMSISDN;
+                				   Temprs=null;
+                				   sSql="select count(*) as ab FROM imsi WHERE homeimsi = '"+cTWNLDIMSI+"' and status=0";
+                				   
+                				   logger.info("count(homeimsi):"+sSql);
+                				   Temprs=s2t.Query(sSql);
+                				   
+                				   while (Temprs.next()){
+                					   smsi=Temprs.getString("ab");
+                				   }
+                				   
+                				   if (smsi.equals("1")){
+                					   sWSFStatus="V";
+                					   sWSFDStatus="V";
+                					   Process_SyncFile(sWSFStatus);
+                					   Process_SyncFileDtl(sWSFDStatus);
+                					   Process_ServiceOrder();
+                					   Process_WorkSubcode();
+                					   
+                					   sSql="update S2T_TB_SERVICE_ORDER set STATUS='N' "+
+                							   "where SERVICE_ORDER_NBR='"+cServiceOrderNBR+"'";
+                					   s2t.Update(sSql);
+                					   logger.debug("update SERVICE_ORDER:"+sSql);
+                					   Query_PreProcessResult(out3,"000");
+            					   }else {
+            						   Query_PreProcessResult(out3,"108");
+        						   }
+                			   }else{
+                				   Query_PreProcessResult(out3,"211");
+            				   }
+                		   }else {
+                			   iError=1;
+                			   Query_PreProcessResult(out3,"200");
+                			   
+                			   if ("".endsWith(iErrorMsg))
+                				   iErrorMsg += ",";
+                			   
+                			   iErrorMsg += "Error Code 200!";
+            			   }
+                	   }else {
+                		   iError=1;
+                		   Query_PreProcessResult(out3,"109");
+                		   
+                		   if ("".endsWith(iErrorMsg))
 								iErrorMsg += ",";
-							iErrorMsg += "Error Code 200!";}
-                        }
-                        else {iError=1;
-                         Query_PreProcessResult(out3,"109");
-                         if ("".endsWith(iErrorMsg))
-								iErrorMsg += ",";
-							iErrorMsg += "Error Code 109!";}
-                      }
-                      else {
+							iErrorMsg += "Error Code 109!";
+						}
+                   }else {
+                	   
                         iError=1;
                         Query_PreProcessResult(out3,"108");
                         if ("".endsWith(iErrorMsg))
 							iErrorMsg += ",";
-						iErrorMsg += "Error Code 108!";}
-                //}else{Query_PreProcessResult(out3,"211");}
-                }else{Query_PreProcessResult(out3,"111");}
+						iErrorMsg += "Error Code 108!";
+					}
+               } //}else{Query_PreProcessResult(out3,"211");}
+                else{Query_PreProcessResult(out3,"111");
+            }
     }
 
     public void ReRunStatus_03(PrintWriter out3) throws SQLException, ClassNotFoundException, IOException, Exception{
       //else if (cReqStatus.equals("03")){
              logger.debug("ReRunStatus_03");
-                                  Temprs=null;
-                  smsi="";
-               csta=Check_Pair_IMSI(cTWNLDIMSI,cS2TIMSI);
-                if (csta.equals("1")){
-                 //csta="";
-               //csta=Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
-                //if (cTWNLDMSISDN.equals(csta)){
-                    csta="";
-                sSql="select count(*) as ab from imsi  where homeimsi='"+
-                        cTWNLDIMSI+"'";
-                          logger.info("Check S2T IMSI:"+sSql);
-                  Temprs=s2t.Query(sSql);
-                          while (Temprs.next()){
-                               smsi=Temprs.getString("ab");
-                               }
-                  if (smsi.equals("1")){bb=true;} else {bb=false;}
-                      if (bb==true){
-                        //Check CHT MSISDN
-                        bc=Validate_PartnerMSISDNRange(cTWNLDMSISDN);
-                        if (bc==true){
-                          Get_GurrentS2TMSISDN();
-                          if (cS2TMSISDN.equals("")){
-                           Temprs=null;
-       sSql="select s2tmsisdn from availablemsisdn where partnermsisdn='"+
-               cTWNLDMSISDN+"'";
-                           logger.info("Find_OLDS2TMSISDN:"+sSql);
-                           Temprs=s2t.Query(sSql);
-                          while (Temprs.next()){
-                               cOLDS2TMSISDN=Temprs.getString("s2tmsisdn");
-                               }
-                          if (!cOLDS2TMSISDN.equals("")){
-                              cS2TMSISDN=cOLDS2TMSISDN;
-                           Temprs=null;
-     sSql="select count(*) as ab FROM imsi WHERE homeimsi = '"+cTWNLDIMSI+
-             "' and status=0";
-                          logger.info("count(homeimsi):"+sSql);
-                          Temprs=s2t.Query(sSql);
-                          while (Temprs.next()){
-                               smsi=Temprs.getString("ab");
-                               }
-                          if (smsi.equals("1")){
-                              iCut=Sparam.indexOf(",");
-                              TempSparam=Sparam.substring(iCut+1, Sparam.length());
-                               iCountA=Check_Tag(TempSparam);
-                             if (iCountA>1){
-                               Find_Old_ORDER_NBR();
-                               Find_Old_step_no();
-                             //if (!sOld_step_no.equals("0")){
-                            sWSFStatus="V";
-                            sWSFDStatus="V";
-                            Process_SyncFile(sWSFStatus);
-                            Process_SyncFileDtl(sWSFDStatus);
-                            Process_ServiceOrder();
-                            reProcess_WorkSubcode(sOld_step_no);
-                            sSql="update S2T_TB_SERVICE_ORDER set STATUS='N' "+
-                                "where SERVICE_ORDER_NBR='"+cServiceOrderNBR+"'";
-                       s2t.Update(sSql);
-                       logger.debug("update SERVICE_ORDER:"+sSql);
-                       Query_PreProcessResult(out3,"000");}//}
-                          else{Query_PreProcessResult(out3,"201");}
-                             }
-                          else {Query_PreProcessResult(out3,"108");}
-                          }
-                          else{Query_PreProcessResult(out3,"211");}
-                          }
-                        else {iError=1;
-                         Query_PreProcessResult(out3,"200");
-                         if ("".endsWith(iErrorMsg))
-								iErrorMsg += ",";
-							iErrorMsg += "Error Code 200!";}
-                        }
-                        else {iError=1;
+             
+             Temprs=null;
+             smsi="";
+             
+             csta=Check_Pair_IMSI(cTWNLDIMSI,cS2TIMSI);
+             if (csta.equals("1")){
+            	 //csta="";
+            	 //csta=Check_TWN_Msisdn_Status(cTWNLDIMSI,cS2TIMSI);
+            	 //if (cTWNLDMSISDN.equals(csta)){
+            	 csta="";
+            	 sSql="select count(*) as ab from imsi  where homeimsi='"+cTWNLDIMSI+"'";
+            	 logger.info("Check S2T IMSI:"+sSql);
+            	 Temprs=s2t.Query(sSql);
+            	 while (Temprs.next()){
+            		 smsi=Temprs.getString("ab");
+        		 }
+            	 
+            	 if (smsi.equals("1")){
+            		 bb=true;
+        		 } else {
+        			 bb=false;
+    			 }
+            	 
+            	 if (bb==true){
+            		 //Check CHT MSISDN
+            		 bc=Validate_PartnerMSISDNRange(cTWNLDMSISDN);
+            		 if (bc==true){
+            			 Get_GurrentS2TMSISDN();
+            			 if (cS2TMSISDN.equals("")){
+            				 Temprs=null;
+            				 sSql="select s2tmsisdn from availablemsisdn where partnermsisdn='"+
+            				 cTWNLDMSISDN+"'";
+            				 logger.info("Find_OLDS2TMSISDN:"+sSql);
+            				 Temprs=s2t.Query(sSql);
+            				 while (Temprs.next()){
+            					 cOLDS2TMSISDN=Temprs.getString("s2tmsisdn");
+        					 }
+            				 
+            				 if (!cOLDS2TMSISDN.equals("")){
+            					 cS2TMSISDN=cOLDS2TMSISDN;
+            					 Temprs=null;
+            					 sSql="select count(*) as ab FROM imsi WHERE homeimsi = '"+cTWNLDIMSI+"' and status=0";
+            					 logger.info("count(homeimsi):"+sSql);
+            					 Temprs=s2t.Query(sSql);
+            					 while (Temprs.next()){
+            						 smsi=Temprs.getString("ab");
+        						 }
+            					 if (smsi.equals("1")){
+            						 iCut=Sparam.indexOf(",");
+            						 TempSparam=Sparam.substring(iCut+1, Sparam.length());
+            						 iCountA=Check_Tag(TempSparam);
+            						 
+            						 if (iCountA>1){
+            							 Find_Old_ORDER_NBR();
+            							 Find_Old_step_no();
+            							 //if (!sOld_step_no.equals("0")){
+            							 sWSFStatus="V";
+            							 sWSFDStatus="V";
+            							 Process_SyncFile(sWSFStatus);
+            							 Process_SyncFileDtl(sWSFDStatus);
+            							 Process_ServiceOrder();
+            							 reProcess_WorkSubcode(sOld_step_no);
+            							 sSql="update S2T_TB_SERVICE_ORDER set STATUS='N' "+
+			                                "where SERVICE_ORDER_NBR='"+cServiceOrderNBR+"'";
+            							 s2t.Update(sSql);
+            							 logger.debug("update SERVICE_ORDER:"+sSql);
+            							 Query_PreProcessResult(out3,"000");
+        							 }//}
+            						 else{
+            							 Query_PreProcessResult(out3,"201");
+        							 }
+            					 }else {
+            						 Query_PreProcessResult(out3,"108");
+        						 }
+            				 }else{
+            					 Query_PreProcessResult(out3,"211");
+        					 }
+            			 }else {
+            				 iError=1;
+            				 Query_PreProcessResult(out3,"200");
+            				 if ("".endsWith(iErrorMsg))
+            					 iErrorMsg += ",";
+            				 iErrorMsg += "Error Code 200!";
+        				 }
+            		 }else {
+            			 iError=1;
                          Query_PreProcessResult(out3,"109");
                          if ("".endsWith(iErrorMsg))
 								iErrorMsg += ",";
-							iErrorMsg += "Error Code 109!";}
-                      }
-                      else {
+							iErrorMsg += "Error Code 109!";
+					}
+            	 }else {
                         iError=1;
                         Query_PreProcessResult(out3,"108");
                         if ("".endsWith(iErrorMsg))
@@ -4061,9 +4101,13 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
      public void Query_PreProcessResult(PrintWriter outA, String rcode) throws SQLException, InterruptedException, Exception {
          cRCode = "";
          
+         //20141222 add 
+         logger.info("Process_Code:" + rcode);
+         Process_Code = rcode;
+         
          if(!cReqStatus.equals("97") && !cReqStatus.equals("98") && !cReqStatus.equals("18")) {
-           logger.info("Process_Code:" + rcode);
-           Process_Code = rcode;
+           /*logger.info("Process_Code:" + rcode);
+           Process_Code = rcode;*/
            
            if(rcode.equals("000") || rcode.equals("501")) {
                rcode = Query_ServiceOrderStatus(outA);
