@@ -85,6 +85,8 @@ public class TWNLDprovision extends HttpServlet {
     static Vector<String> vln=new Vector<String>();
     static Vector<String> Tmpvln=new Vector<String>();
     
+    static List<Map<String,String>> cAddonItem = new ArrayList<Map<String,String>>();
+    
     static String cAddonCode="", cAddonAction="";   //****************************************
     //static FileWriter fw = null;
     //static BufferedWriter bw = null;
@@ -175,6 +177,60 @@ public class TWNLDprovision extends HttpServlet {
     	return m.find();
     }
     
+    private boolean Query_AddonStatus(PrintWriter out18) {
+    	logger.info("Check Addon Service");
+    	
+    	String addonCode = "";
+    	String addonAction = "";
+
+    	try {
+			for(Map<String,String> m : cAddonItem){
+				addonCode = m.get("AddonCode");
+				addonAction = m.get("AddonAction");
+				
+				if(!checkAddonCode(addonCode)) {
+					logger.debug("Addon Service Code is incorrect");
+					Query_PreProcessResult(out18,"423");
+					return false;
+				}
+				
+				if("A".equals(addonAction.toUpperCase())) {
+	    			
+	    			sSql="SELECT COUNT(*) AS ab from ADDONSERVICE WHERE ADDONCODE='"+ 
+	    			     addonCode + "' AND MNOIMSI= '" + cTWNLDIMSI + "'";
+	    			TempRt = s2t.Query(sSql);
+	             
+	                while (Temprs.next()) {
+	                	if("0".equals(Temprs.getString("ab"))) {
+	                		logger.debug("Addon Service Already Existed");
+	    					Query_PreProcessResult(out18,"425");
+	    					return false;
+	                	}
+	                }
+	                             
+	                    
+	                logger.info("Check Addon Code:" + sSql);
+	    			
+	    		} else if("D".equals(addonAction.toUpperCase())) {
+	    			
+	    		}
+			}
+			
+			
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	return true;
+    }
+    
+    /*
     private void Query_AddonStatus(PrintWriter out18, Document doc) {
     	logger.info("Check Addon Service");
     	
@@ -258,7 +314,7 @@ public class TWNLDprovision extends HttpServlet {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-    }
+    }*/
     
     private String parseDocumentToXML(Document doc) throws TransformerException{
     	DOMSource domSource = new DOMSource(doc);
@@ -313,6 +369,7 @@ public class TWNLDprovision extends HttpServlet {
 		/*********************************************************/
         cAddonCode = "";
         cAddonAction = "";
+        cAddonItem.clear();
 		/*********************************************************/
         
         Load_Properties(out,getServletContext().getRealPath("/"));
@@ -330,226 +387,223 @@ public class TWNLDprovision extends HttpServlet {
         out.println("<?xml version='1.0' encoding='UTF-8'?>");
         out.println("<ActivationRsp>");
         sreturnXml = "<?xml version='1.0' encoding='UTF-8'?><ActivationRsp>";
-        
-        try {
-        	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            DocumentBuilder builder = dbf.newDocumentBuilder();
-            Document doc1 = builder.parse(new InputSource(request.getReader()));
-		   
-            //******************************************************************************************************
-            //Document doc1 = builder.parse(new File("C://Users/Administrator/workspace/TWNLD/src/test.xml"));
-            //************************************************************************************************
-            
-            logger.info("The received XML content: ");
-        	logger.info(parseDocumentToXML(doc1)); 
-        	
-            doc1.normalize();
-            read_xml(doc1);
-            
-            ba = Connect_DB();
-            logger.info("Connect Database:" + ba);
+        //20141211 add
+      try {
+      	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+          DocumentBuilder builder = dbf.newDocumentBuilder();
+          Document doc1 = builder.parse(new InputSource(request.getReader()));
+	   
+          //******************************************************************************************************
+          //Document doc1 = builder.parse(new File("C://Users/Administrator/workspace/TWNLD/src/test.xml"));
+          //************************************************************************************************
           
-            if((ba == true) && (!cReqStatus.equals(""))) {
-               if(!dReqDate.equals("")){
-                  Sdate = dReqDate.substring(4,6)+"/"+dReqDate.substring(6,8)+"/"+dReqDate.substring(0,4)+" "+dReqDate.substring(8,10)+":"+dReqDate.substring(10,12)+":"+dReqDate.substring(12,14);
-                  Write_ProvisionLog();
-                  vln.removeAllElements();
-                  TempRtA = null;
-                  
-                  sSql = "Select subscr_id as ab,nvl(result_flag,'0') as cd from S2T_TB_TYPB_WO_SYNC_FILE_DTL"+
-                  " where subscr_id ='"+cTicketNumber+"'";
-                  
-                  logger.debug("Check TicketNumber:"+sSql);
-                  TempRtA = s2t.Query(sSql);
+          logger.info("The received XML content: ");
+      	logger.info(parseDocumentToXML(doc1)); 
+      	
+          doc1.normalize();
+          read_xml(doc1);
+          
+          ba = Connect_DB();
+          logger.info("Connect Database:" + ba);
+        
+          if((ba == true) && (!cReqStatus.equals(""))) {
+             if(!dReqDate.equals("")){
+                Sdate = dReqDate.substring(4,6)+"/"+dReqDate.substring(6,8)+"/"+dReqDate.substring(0,4)+" "+dReqDate.substring(8,10)+":"+dReqDate.substring(10,12)+":"+dReqDate.substring(12,14);
+                Write_ProvisionLog();
+                vln.removeAllElements();
+                TempRtA = null;
                 
-                  while(TempRtA.next()) {
-                     cSubscrId = TempRtA.getString("ab");
-                     Old_result_flag=TempRtA.getString("cd"); 
-                  }
-                  
-                  //20141211 add
-                  if("18".equals(cReqStatus) && "".equals(cAddonCode)&& "".equals(cAddonAction)){
-                	  	logger.debug("AddonCode or AddonAction is ineffective!");
-                	  	Query_PreProcessResult(out,"000");
-             	       return;
-             		 	
-                  }
-             
-                  if(!cSubscrId.equals(cTicketNumber)) {
-                	  switch(Integer.parseInt(cReqStatus)) {
-                        case 0:
-                           ReqStatus_00(out);
-                           break;
-                         case 1:
-                            ReqStatus_01(out);
-                            break;
-                         case 2:
-                            ReqStatus_02(out);
-                            break;
-                         case 3:
-                            ReqStatus_03(out);
-                            break;
-                         case 5:
-                            ReqStatus_05(out);
-                            break;
-                         case 7:
-                            ReqStatus_07(out);
-                            break; 
-                         case 17:
-                            ReqStatus_17(out);
-                            break;
-                         case 18:
-	                         {
-                        		 Query_AddonStatus(out, doc1);
-                        		 ReqStatus_18(out);	
-	                         }
-	                         break;//}
-                         case 19:
-                            ReqStatus_19(out);
-                            break;//}
-                         case 97:
-                        	 //else if (cReqStatus.equals("97")){
-	                         {
-	                            sWSFStatus = "O";
-	                            Process_SyncFile(sWSFStatus);
-	                            Query_ByPartnerIMSI(out);
-	                         }
-                            break; //}
-                         case 98:
-                        	 // else if (cReqStatus.equals("98")){
-	                         {
-	                            sWSFStatus = "O";
-	                            Process_SyncFile(sWSFStatus);
-	                            Query_ByPartnerMSISDN(out);
-	                         }
-                            break;//}
-                         case 99:
-                            ReqStatus_99(out);
-                            break;
-                            // else {iError=1;}
-                         default:  
-                        	 iError=1;
-                        	 
-                        	 if("".endsWith(iErrorMsg))
-                        		 iErrorMsg+=",";
-                        	 iErrorMsg+="ReqStatus is incorrect!";
-                        	 
-                        	 break;
-                      }
-                	  //}else {Query_PreProcessResult(out,"402");}
-					   logger.info("iError:" + iError+", cRCode:" + cRCode);
-					   
-					   if((iError == 0) && (cRCode.equals("000"))) {
-						  RCode_000(out);    
-					   }
-					   //501 S
-					   if ((iError!=0)&&(!cRCode.equals("000"))){
-						   S501(out,cRCode);
-					   } //501 E
-                    } else if (cSubscrId.equals(cTicketNumber) && !Old_result_flag.equals("000")){
-                    	switch(Integer.parseInt(cReqStatus)){                	
-		                case 0:
-		                  ReRunStatus_00(out);
-		                  break;
-		                case 1:
-		                  ReRunStatus_01(out);
-		                  break;
-		                case 2:
-		                  ReRunStatus_02(out);
-		                  break;
-		                case 3:
-		                  ReRunStatus_03(out);
-		                  break;
-		                case 5:
-		                  ReRunStatus_05(out);
-		                  break;
-		                case 7:
-		                  ReRunStatus_07(out);
-		                  break;
-		                case 17:
-		                  ReRunStatus_17(out);
-		                  break;
-		                case 18:
-		                	ReRunStatus_18(out);
-		                	break;
-		                case 99:
-		                	
-			                ReRunStatus_99(out);
-			                break;
-		                default:
-							iError = 1;
+                sSql = "Select subscr_id as ab,nvl(result_flag,'0') as cd from S2T_TB_TYPB_WO_SYNC_FILE_DTL"+
+                " where subscr_id ='"+cTicketNumber+"'";
+                
+                logger.debug("Check TicketNumber:"+sSql);
+                TempRtA = s2t.Query(sSql);
+              
+                while(TempRtA.next()) {
+                   cSubscrId = TempRtA.getString("ab");
+                   Old_result_flag=TempRtA.getString("cd"); 
+                }
+                
+                //20141211 add
+                if("18".equals(cReqStatus) && "".equals(cAddonCode)&& "".equals(cAddonAction)){
+              	  	logger.debug("AddonCode or AddonAction is ineffective!");
+              	  	Query_PreProcessResult(out,"000");
+           	       return;
+           		 	
+                }
+           
+                if(!cSubscrId.equals(cTicketNumber)) {
+              	  switch(Integer.parseInt(cReqStatus)) {
+                      case 0:
+                         ReqStatus_00(out);
+                         break;
+                       case 1:
+                          ReqStatus_01(out);
+                          break;
+                       case 2:
+                          ReqStatus_02(out);
+                          break;
+                       case 3:
+                          ReqStatus_03(out);
+                          break;
+                       case 5:
+                          ReqStatus_05(out);
+                          break;
+                       case 7:
+                          ReqStatus_07(out);
+                          break; 
+                       case 17:
+                          ReqStatus_17(out);
+                          break;
+                       case 18:
+                    	   ReqStatus_18(out);	
+                    	   break;
+                       case 19:
+                          ReqStatus_19(out);
+                          break;//}
+                       case 97:
+                      	 //else if (cReqStatus.equals("97")){
+                         {
+                            sWSFStatus = "O";
+                            Process_SyncFile(sWSFStatus);
+                            Query_ByPartnerIMSI(out);
+                         }
+                          break; //}
+                       case 98:
+                      	 // else if (cReqStatus.equals("98")){
+                         {
+                            sWSFStatus = "O";
+                            Process_SyncFile(sWSFStatus);
+                            Query_ByPartnerMSISDN(out);
+                         }
+                          break;//}
+                       case 99:
+                          ReqStatus_99(out);
+                          break;
+                          // else {iError=1;}
+                       default:  
+                      	 iError=1;
+                      	 
+                      	 if("".endsWith(iErrorMsg))
+                      		 iErrorMsg+=",";
+                      	 iErrorMsg+="ReqStatus is incorrect!";
+                      	 
+                      	 break;
+                    }
+              	  //}else {Query_PreProcessResult(out,"402");}
+				   logger.info("iError:" + iError+", cRCode:" + cRCode);
+				   
+				   if((iError == 0) && (cRCode.equals("000"))) {
+					  RCode_000(out);    
+				   }
+				   //501 S
+				   if ((iError!=0)&&(!cRCode.equals("000"))){
+					   S501(out,cRCode);
+				   } //501 E
+                  } else if (cSubscrId.equals(cTicketNumber) && !Old_result_flag.equals("000")){
+                  	switch(Integer.parseInt(cReqStatus)){                	
+	                case 0:
+	                  ReRunStatus_00(out);
+	                  break;
+	                case 1:
+	                  ReRunStatus_01(out);
+	                  break;
+	                case 2:
+	                  ReRunStatus_02(out);
+	                  break;
+	                case 3:
+	                  ReRunStatus_03(out);
+	                  break;
+	                case 5:
+	                  ReRunStatus_05(out);
+	                  break;
+	                case 7:
+	                  ReRunStatus_07(out);
+	                  break;
+	                case 17:
+	                  ReRunStatus_17(out);
+	                  break;
+	                case 18:
+	                	ReRunStatus_18(out);
+	                	break;
+	                case 99:
+	                	
+		                ReRunStatus_99(out);
+		                break;
+	                default:
+						iError = 1;
 
-							if ("".endsWith(iErrorMsg))
-								iErrorMsg += ",";
-							iErrorMsg += "ReqStatus is incorrect!";
-                    	}
+						if ("".endsWith(iErrorMsg))
+							iErrorMsg += ",";
+						iErrorMsg += "ReqStatus is incorrect!";
+                  	}
 
-			              logger.info("iError:"+iError+",cRCode:"+cRCode);
-			              if ((iError==0)&&(cRCode.equals("000"))){
-			                 RCode_000(out);
-			               }
-			              //501 S
-			              if ((iError!=0)&&(!cRCode.equals("000"))){
-			                S501(out,cRCode);
-			              } //501 E
-                    } else {
-                    	Query_PreProcessResult(out,"107");
-                	}
-               } else{ 
-            	   Query_PreProcessResult(out,"110");
-        	   }
-            } else {
-                out.println("<Return_Code>");
-                out.println("601");
-                out.println("</Return_Code>");
-                out.println("<Return_DateTime>");
-                out.println(s2t.Date_Format()+s2t.Date_Format_Time());
-                out.println("</Return_DateTime>");
-                desc="DBconnection error";
-                sreturnXml=sreturnXml+"<Return_Code>601</Return_Code><Return_DateTime>"+
-                        s2t.Date_Format()+s2t.Date_Format_Time()+"</Return_DateTime>";
-            }
-        }catch(SQLException ex){
-	        StringWriter   s   =   new   StringWriter();
-	        ex.printStackTrace(new PrintWriter(s));
-	        logger.error("JAVA Error:"+s.toString());
-	           sSql="update PROVLOG set javaerrmsg='"+s.toString()+"' where LOGID="+ sCMHKLOGID;
-	           s2t.Update(sSql);
-	        sErrorSQL+=sSql;
-	        Query_PreProcessResult(out,"600");
-        }catch(Exception ex){
-	        StringWriter s = new StringWriter();
-	        ex.printStackTrace(new PrintWriter(s));
-	        logger.error("JAVA Error:"+s.toString());
-           sSql="update PROVLOG set javaerrmsg='"+s.toString()+"' where LOGID="+
-                   sCMHKLOGID;
+		              logger.info("iError:"+iError+",cRCode:"+cRCode);
+		              if ((iError==0)&&(cRCode.equals("000"))){
+		                 RCode_000(out);
+		               }
+		              //501 S
+		              if ((iError!=0)&&(!cRCode.equals("000"))){
+		                S501(out,cRCode);
+		              } //501 E
+                  } else {
+                  	Query_PreProcessResult(out,"107");
+              	}
+             } else{ 
+          	   Query_PreProcessResult(out,"110");
+      	   }
+          } else {
+              out.println("<Return_Code>");
+              out.println("601");
+              out.println("</Return_Code>");
+              out.println("<Return_DateTime>");
+              out.println(s2t.Date_Format()+s2t.Date_Format_Time());
+              out.println("</Return_DateTime>");
+              desc="DBconnection error";
+              sreturnXml=sreturnXml+"<Return_Code>601</Return_Code><Return_DateTime>"+
+                      s2t.Date_Format()+s2t.Date_Format_Time()+"</Return_DateTime>";
+          }
+      }catch(SQLException ex){
+        StringWriter   s   =   new   StringWriter();
+        ex.printStackTrace(new PrintWriter(s));
+        logger.error("JAVA Error:"+s.toString());
+           sSql="update PROVLOG set javaerrmsg='"+s.toString()+"' where LOGID="+ sCMHKLOGID;
            s2t.Update(sSql);
-           Query_PreProcessResult(out,"600");
-        }finally {
-        	
-          logger.info("Procedure End");
-          out.println("<Return_MSG>");
-          out.println(desc);
-          out.println("</Return_MSG>");
-          out.println("</ActivationRsp>");
-          sreturnXml=sreturnXml+"<Return_MSG>"+desc+"</Return_MSG></ActivationRsp>";
-          logger.info(sreturnXml);
-          //20141211 add
-          if(!"18".equals(cReqStatus) || !"".equals(cAddonCode)|| !"".equals(cAddonAction)){
-        	  if ((!cReqStatus.equals("97"))||(!cReqStatus.equals("98"))) {
-	              runtime.exec(s2tconf.getProperty("Run_Shell"));
-	  				  //Send False Mail
-	  				 if ((!Process_Code.equals("000"))||(!cRCode.equals("000"))){
-	  					Send_AlertMail();
-	  				 }
-	  			}
-          }  
-			  s2t.Close();
-			  out.close();
-            vln.clear();
-            Tmpvln.clear();
-            s2tconf.clear();
-        }
+        sErrorSQL+=sSql;
+        Query_PreProcessResult(out,"600");
+      }catch(Exception ex){
+        StringWriter s = new StringWriter();
+        ex.printStackTrace(new PrintWriter(s));
+        logger.error("JAVA Error:"+s.toString());
+         sSql="update PROVLOG set javaerrmsg='"+s.toString()+"' where LOGID="+
+                 sCMHKLOGID;
+         s2t.Update(sSql);
+         Query_PreProcessResult(out,"600");
+      }finally {
+      	
+        logger.info("Procedure End");
+        out.println("<Return_MSG>");
+        out.println(desc);
+        out.println("</Return_MSG>");
+        out.println("</ActivationRsp>");
+        sreturnXml=sreturnXml+"<Return_MSG>"+desc+"</Return_MSG></ActivationRsp>";
+        logger.info(sreturnXml);
+        //20141211 add
+        if(!"18".equals(cReqStatus) || cAddonItem.size()>0){
+      	  if ((!cReqStatus.equals("97"))||(!cReqStatus.equals("98"))) {
+              runtime.exec(s2tconf.getProperty("Run_Shell"));
+  				  //Send False Mail
+  				 if ((!Process_Code.equals("000"))||(!cRCode.equals("000"))){
+  					Send_AlertMail();
+  				 }
+  			}
+        }  
+		  s2t.Close();
+		  out.close();
+          vln.clear();
+          Tmpvln.clear();
+          s2tconf.clear();
+      }
         //} //synchronized end
     }
 
@@ -1703,6 +1757,11 @@ public class TWNLDprovision extends HttpServlet {
     }
     
     public void ReqStatus_18(PrintWriter out18) throws SQLException, IOException, ClassNotFoundException, Exception {
+    	
+    	
+    	if(!Query_AddonStatus(out18))
+    		return;
+    	
     	csta = Check_Pair_IMSI(cTWNLDIMSI, cS2TIMSI);
     	logger.info("ADDON START");
     	
@@ -1728,20 +1787,26 @@ public class TWNLDprovision extends HttpServlet {
                 				   sSql = "";
                 				   sWSFStatus = "V";
                                    sWSFDStatus = "V";
-                				   Process_SyncFile(sWSFStatus);
-                                   Process_SyncFileDtl(sWSFDStatus);
-                                   Process_ServiceOrder();
-                                   Process_WorkSubcode();
-                  
-                                   sSql="INSERT INTO ADDONSERVICE (REQUESTDATETIME," +
-                                           "MNOSUBCODE,MNOIMSI,MNOMSISDN,S2TIMSI,S2TMSISDN," + 
-                                		   "ADDONCODE,ADDONACTION,SENDDATETIME,DONEDATETIME" +
-                                           ") VALUES (SYSDATE" + ",'950','" + cTWNLDIMSI + "','" + cTWNLDMSISDN + "','"
-                                		   + cS2TIMSI + "','" + cS2TMSISDN + "','" + cAddonCode + "','" + cAddonAction 
-                                		   + "',null,null)";
-                                   
-                                   s2t.Inster(sSql);
-                                   logger.debug("Adding Addon_Service:" + sSql);
+                                   for(Map<String,String> m: cAddonItem){
+                                	   cAddonCode = m.get("AddonCode");
+                                	   cAddonAction = m.get("AddonAction");
+                       				
+                                	   
+                                	   Process_SyncFile(sWSFStatus);
+                                       Process_SyncFileDtl(sWSFDStatus);
+                                       Process_ServiceOrder();
+                                       Process_WorkSubcode();
+                      
+                                       sSql="INSERT INTO ADDONSERVICE (REQUESTDATETIME," +
+                                               "MNOSUBCODE,MNOIMSI,MNOMSISDN,S2TIMSI,S2TMSISDN," + 
+                                    		   "ADDONCODE,ADDONACTION,SENDDATETIME,DONEDATETIME" +
+                                               ") VALUES (SYSDATE" + ",'950','" + cTWNLDIMSI + "','" + cTWNLDMSISDN + "','"
+                                    		   + cS2TIMSI + "','" + cS2TMSISDN + "','" + cAddonCode + "','" + cAddonAction 
+                                    		   + "',null,null)";
+                                       
+                                       s2t.Inster(sSql);
+                                       logger.debug("Adding Addon_Service:" + sSql);
+                                   }
                 				   Query_PreProcessResult(out18, "000");
                 				   
                                   // Query_AddonStatus();	   
@@ -4063,7 +4128,7 @@ public String Update_GPRSStatus() throws SQLException, IOException {
 }
 
 public String Load_ResultDescription(String sDecs) throws SQLException {
-	sDecs = "000";
+	//sDecs = "000";
 	
 	
    String sD="";
@@ -4392,7 +4457,31 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
 
                         	if(itemNode.getNodeType() == Node.ELEMENT_NODE) {
                         		
-                               Element first = (Element)itemNode;
+                        	   //20150206  change
+                        		
+                        		Element first = (Element)itemNode;
+                        		NodeList codeNode = first.getElementsByTagName("Addon_Code");
+                                Element codeElement = (Element)codeNode.item(0);
+                                NodeList codeNodeList = codeElement.getChildNodes();
+                                cAddonCode = ((Node)codeNodeList.item(0)).getNodeValue().trim();
+                                
+                                if("18".equals(cReqStatus)&& "SX000".equalsIgnoreCase(((Node)codeNodeList.item(0)).getNodeValue().trim())){
+                             	   logger.info("Give up SX000 Data...");
+                             	   continue;
+                                }
+                                
+                                NodeList actionNode = first.getElementsByTagName("Addon_Action");
+                                Element actionElement = (Element)actionNode.item(0);
+                                NodeList actionNodeList = actionElement.getChildNodes();
+                                cAddonAction = ((Node)actionNodeList.item(0)).getNodeValue().trim(); 
+                                
+                                Map<String,String> map = new HashMap<String,String>();
+                                
+                                map.put("AddonCode", cAddonCode);
+                                map.put("AddonAction", cAddonAction);
+                                cAddonItem.add(map);
+                                
+                               /*Element first = (Element)itemNode;
                         	   NodeList codeNode = first.getElementsByTagName("Addon_Code");
                                Element codeElement = (Element)codeNode.item(0);
                                NodeList codeNodeList = codeElement.getChildNodes();
@@ -4410,7 +4499,7 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
                                Element actionElement = (Element)actionNode.item(0);
                                NodeList actionNodeList = actionElement.getChildNodes();
                                cAddonAction = ((Node)actionNodeList.item(0)).getNodeValue().trim();  
-                               Sparam = Sparam + "," + actionNode.item(0).getNodeName() + "=" + cAddonAction;
+                               Sparam = Sparam + "," + actionNode.item(0).getNodeName() + "=" + cAddonAction;*/
                         	}
                         }
                 	}
