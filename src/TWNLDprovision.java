@@ -1,4 +1,5 @@
 ﻿/*
+ * 
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  * 2010/12/14 新增功能 SMS延遲,修正發信的JAVA錯誤
@@ -27,6 +28,17 @@
  * 2014/10/07 新增錯誤訊息601 DBconnection Error
  */
 
+/**
+ * Program History
+ * 20140918 程式接手
+ * 20140919 調整Log內容，帶出Error Msg、SQL
+ * 20140919 修改，當ActionCode為sx000時，不取資料
+ * 20141007 新增狀態601，DB Connection Error
+ * 20141211 調整當req18時，沒有Action Code與action時，不做任何事傳回000
+ * 20141215 調整回傳訊息，移除重複的VLN，增加AddonCode、AddonAction、ReqDateTime
+ * 20141216 調整簡訊內容
+ * 20150206 將AddonCode、AddonAction改為List，Request18以loop執行
+ */
 
 import java.io.*;
 import java.sql.*;
