@@ -2310,7 +2310,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     	
 	         if (cGPRS.equals("1")) {
 	        	 VARREALMSG="親愛的中華客戶：您已開通環球卡數據服務，請先將手機數據漫遊功能開啟，在行動網路設定APN 為\"CMHK\"。"
-	        	 		+ "除中國、香港、澳門、日本、韓國有每日收費上限外，其餘國家按實際用量收費，不提供吃到飽方案，請謹慎使用。另有香港/大陸月租上網吃到飽服務，歡迎加選。";
+	        	 		+ "除中國、香港、澳門、日本、韓國、印尼有每日收費上限外，其餘國家按實際用量收費，不提供吃到飽方案，請謹慎使用。另有香港/大陸月租上網吃到飽服務，歡迎加選。";
 	        
 	        	 //send_SMS(VARREALMSG);
 	        	 if(smsCho)send_SMS(VARREALMSG);
@@ -2490,7 +2490,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 		                "請斟酌使用。";*/
         		
         		VARREALMSG="親愛的中華客戶：您已開通環球卡數據服務，請先將手機數據漫遊功能開啟，在行動網路設定APN 為\"CMHK\"。"
-        				+ "除中國、香港、澳門、日本、韓國有每日收費上限外，其餘國家按實際用量收費，不提供吃到飽方案，請謹慎使用。"
+        				+ "除中國、香港、澳門、日本、韓國、印尼有每日收費上限外，其餘國家按實際用量收費，不提供吃到飽方案，請謹慎使用。"
         				+ "另有香港/大陸月租上網吃到飽服務，歡迎加選。";
         		
         		//send_SMS(VARREALMSG);
