@@ -41,24 +41,24 @@
  */
 
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Date;
 //import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.xml.parsers.ParserConfigurationException;
-
 import org.apache.log4j.*;
 
-import javax.mail.*;
-import javax.mail.internet.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -70,17 +70,18 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
-import javax.activation.*;
-
-import org.xml.sax.SAXException;
 
 /**
  *
  * @author Administrator
  */
 public class TWNLDprovision extends HttpServlet {
-    public Statement Tempsm=null;
-    private static Logger logger,sconf;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	public Statement Tempsm=null;
+    private static Logger logger;//,sconf
     public ProcessS2T.PS2T s2t = new ProcessS2T.PS2T();
     static ResultSet Temprs=null;
     static ResultSet TempRtA=null;
@@ -110,6 +111,8 @@ public class TWNLDprovision extends HttpServlet {
     boolean  ba,bb,bc,bd,sessionDebug = true;
     public java.util.Properties props = System.getProperties();
     
+    //20150520 add
+    List<Map<String,String>> delaySMS = new ArrayList<Map<String,String>>();
     
     //20140919 Add RecordErrorSQL
     String sErrorSQL="",iErrorMsg="";
@@ -125,7 +128,7 @@ public class TWNLDprovision extends HttpServlet {
      */
 
     private static void Load_Properties(PrintWriter outD,String Spath){
-            Properties props=new Properties();
+           // Properties props=new Properties();
         try {
             s2tconf.load(new   FileInputStream( Spath +"/log4j.properties"));
             PropertyConfigurator.configure(s2tconf);
@@ -135,7 +138,6 @@ public class TWNLDprovision extends HttpServlet {
        catch (IOException e) {
             e.printStackTrace();
         } catch (Exception e) {
-		// TODO Auto-generated catch block
 		e.printStackTrace();
 	}
     }
@@ -156,11 +158,9 @@ public class TWNLDprovision extends HttpServlet {
 				logger.error("Connection for MBOSS is null !");
 			}
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			logger.error("connectDB2 Exception : "+e.getMessage());
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			logger.error("connectDB2 Exception : "+e.getMessage());
 		}
@@ -230,13 +230,10 @@ public class TWNLDprovision extends HttpServlet {
 			
 			
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
     	return true;
@@ -316,14 +313,11 @@ public class TWNLDprovision extends HttpServlet {
     			
     		}	
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			sErrorSQL+=sSql;
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
     }*/
@@ -345,9 +339,9 @@ public class TWNLDprovision extends HttpServlet {
         PrintWriter out = response.getWriter();
         //synchronized 同步程式區塊可以避免多位使用者同時存取實例變數
         //synchronized(this){
-        int iCount,ivln,j,k;
-        ResultSet Trt=null;
-        String sMd="",cSubscrId="",sFile="",VARREALMSG="";
+        //int iCount,ivln,j,k;//
+        //ResultSet Trt=null;
+        String cSubscrId="";//,sFile="",VARREALMSG=""sMd="",
         Sparam = "";
         sAllVln="";
         dReqDate="";
@@ -361,7 +355,7 @@ public class TWNLDprovision extends HttpServlet {
         cGPRSStatus="";
         sWSFStatus="";
         sWSFDStatus="";
-        VARREALMSG="";
+        //VARREALMSG="";
         sError="";
         cRCode="";
         cOldTWNLDMSISDN="";
@@ -378,8 +372,11 @@ public class TWNLDprovision extends HttpServlet {
         
         sErrorSQL="";
         iErrorMsg="";
-        
-		/*********************************************************/
+        delaySMS.clear();
+		
+        //20150529 add
+        desc="";
+        /*********************************************************/
         cAddonCode = "";
         cAddonAction = "";
         cAddonItem.clear();
@@ -621,21 +618,53 @@ public class TWNLDprovision extends HttpServlet {
         //20141211 add
         if(!"18".equals(cReqStatus) || cAddonItem.size()>0){
       	  if ((!cReqStatus.equals("97"))||(!cReqStatus.equals("98"))) {
-              runtime.exec(s2tconf.getProperty("Run_Shell"));
+              try {
+				runtime.exec(s2tconf.getProperty("Run_Shell"));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
   				  //Send False Mail
   				 if ((!Process_Code.equals("000"))||(!cRCode.equals("000"))){
   					Send_AlertMail();
   				 }
   			}
-        }  
-		  s2t.Close();
-		  out.close();
+        } 
+        
+          out.close();
           vln.clear();
           Tmpvln.clear();
           s2tconf.clear();
+          s2t.Close();
+  
+          //20150520 add  
+          //delay 30 minute to send
+          Thread t = new Thread(new ThreadExample2(delaySMS) );
+		   
+		  t.setDaemon(true);
+		  t.start(); 
+          
       }
         //} //synchronized end
+      
+      
     }
+    int SMS_Delay_Time = 30*60*1000;
+    public class ThreadExample2 implements Runnable {
+    	List<Map<String,String>> delaySMS =new ArrayList<Map<String,String>>();
+    	public ThreadExample2(List<Map<String,String>> delaySMS){
+    		this.delaySMS=delaySMS;
+    	}
+        public void run() { // implements Runnable run()
+        	
+        	 try {
+				Thread.sleep(SMS_Delay_Time);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+             send_dalay_SMS(delaySMS);
+        }
+    }
+
 
     public void ReqStatus_00(PrintWriter out0) throws SQLException, ClassNotFoundException, IOException, Exception{
                 //if (cReqStatus.equals("00")){
@@ -734,7 +763,7 @@ public class TWNLDprovision extends HttpServlet {
     }
 
     public void ReRunStatus_00(PrintWriter out0) throws SQLException, Exception{
-       String sV="",sM="",str="",sE="",scountryname="",sVLN="";
+       String sV="",sM="",scountryname="",sVLN="";//sE="",
        String Scut=null;
        logger.debug("ReRunStatus_00");
        //Temprs=null;
@@ -1382,6 +1411,9 @@ public class TWNLDprovision extends HttpServlet {
                           smsi=Query_PartnerMSISDNStatus();
                           if (smsi.equals("0")){
                             Check_Type_Code_87_MAP_VALUE(cS2TMSISDN);
+                            //20150522 add
+                            Query_GPRSStatus();
+                            
                             sWSFStatus="V";
                             sWSFDStatus="V";
                             Process_SyncFile(sWSFStatus);
@@ -1450,7 +1482,10 @@ public class TWNLDprovision extends HttpServlet {
                                TempSparam=Sparam.substring(iCut+1, Sparam.length());
                                iCountA=Check_Tag(TempSparam);
                              if (iCountA>1){
-                               Find_Old_ORDER_NBR();
+                            	 //20150522 add
+                            	 Query_GPRSStatus();
+                               
+                            	 Find_Old_ORDER_NBR();
                                Find_Old_step_no();
                              //if (!sOld_step_no.equals("0")){
                             Check_Type_Code_87_MAP_VALUE(cS2TMSISDN);
@@ -1687,7 +1722,7 @@ public class TWNLDprovision extends HttpServlet {
     
     public void ReqStatus_17_Act(PrintWriter out17) throws SQLException, IOException, ClassNotFoundException, Exception{
     	logger.debug("ReqStatus_17_Act");
-    	
+
 	    	Check_Type_Code_87_MAP_VALUE(cS2TMSISDN);
 	        sWSFStatus="V";
 	        sWSFDStatus="V";
@@ -1702,6 +1737,7 @@ public class TWNLDprovision extends HttpServlet {
 	        logger.debug("update SERVICE_ORDER:"+sSql);
 	        Query_PreProcessResult(out17,"000");
 	        Query_GPRSStatus();
+	        
     }
 
     public void ReRunStatus_17(PrintWriter out17) throws SQLException, IOException, ClassNotFoundException, Exception{
@@ -1765,7 +1801,7 @@ public class TWNLDprovision extends HttpServlet {
     }
     public void ReRunStatus_17_Act(PrintWriter out17)throws SQLException, IOException, ClassNotFoundException, Exception{
     	logger.debug("ReRunStatus_17_Act");
-    	
+
 	    	Find_Old_ORDER_NBR();
 	        Find_Old_step_no();
 	        //if (!sOld_step_no.equals("0")){
@@ -1783,7 +1819,8 @@ public class TWNLDprovision extends HttpServlet {
 	        logger.debug("update SERVICE_ORDER:"+sSql);
 	        Query_PreProcessResult(out17,"000");
 	        Query_GPRSStatus();
-	        Query_PreProcessResult(out17,"000");
+	        //Query_PreProcessResult(out17,"000");
+
     }
     
     public void ReqStatus_18(PrintWriter out18) throws SQLException, IOException, ClassNotFoundException, Exception {
@@ -1817,6 +1854,7 @@ public class TWNLDprovision extends HttpServlet {
                 				   sSql = "";
                 				   sWSFStatus = "V";
                                    sWSFDStatus = "V";
+                                   
                                    for(Map<String,String> m: cAddonItem){
                                 	   cAddonCode = m.get("AddonCode");
                                 	   cAddonAction = m.get("AddonAction");
@@ -1941,7 +1979,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
             						logger.debug("update SERVICE_ORDER:"+sSql);
             						Query_PreProcessResult(out18,"000");
         
-            						Update_VLNNumber();
+            						//Update_VLNNumber();
             					} else {
             						Query_PreProcessResult(out18,"201");
             					}
@@ -2108,39 +2146,54 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 	    String PAYMENT = "";
                 
 	    if(cReqStatus.equals("18")) {
-	       if(cAddonCode.equals("SX001")) {
-	          PACKAGE = "香港上網包";
-		      PAYMENT = "NTD599";
-	       } else if(cAddonCode.equals("SX002")) {
-		      PACKAGE = "香港+大陸上網包";
-		      PAYMENT = "NTD999";
-	       }
+	    	//20150518 modify sms for multi-actionItem
+	    	for(Map<String,String> m: cAddonItem){
+	    	   VARREALMSG = "";
+         	   cAddonCode = m.get("AddonCode");
+         	   cAddonAction = m.get("AddonAction");
+         	   
+         	  if(cAddonCode.equals("SX001")) {
+    	          PACKAGE = "香港上網包";
+    		      PAYMENT = "NTD599";
+    	       } else if(cAddonCode.equals("SX002")) {
+    		      PACKAGE = "香港+大陸上網包";
+    		      PAYMENT = "NTD999";
+    	       }
 
-	       if(cAddonAction.equals("A")) {
-	          /*VARREALMSG = "《開通通知簡訊》 "; 
-	          VARREALMSG += PACKAGE + " -->";
-	          VARREALMSG += "addon_code=\'" + cAddonCode + "\'";
-	          VARREALMSG += " and addon_action=\'" + cAddonAction + "\'";*/
-              VARREALMSG += "親愛的中華電信用戶，您加選的環球卡" + PACKAGE; 
-              VARREALMSG += "月租服務已經開通囉，優惠期間每月只要" + PAYMENT;
-	          VARREALMSG += "提醒您手機須先將數據漫遊功能開啟，並請在網路的APN欄位輸入\"CMHK\"。環球卡感謝您！";
- 	       } else {
-              /*VARREALMSG = "《退租通知簡訊》"; 
-              VARREALMSG += PACKAGE + " -->";
-	          VARREALMSG += "addon_code=\'" + cAddonCode + "\'";
-	          VARREALMSG += " and addon_action=\'" + cAddonAction + "\'";*/
-	          VARREALMSG += "《溫馨提醒》親愛的環球卡用戶，您所選的" + PACKAGE;
-              VARREALMSG += "服務已經依您選擇完成退租。日後如有需要歡迎隨時加選。環球卡感謝您！";
-	       }
+    	       if(cAddonAction.equals("A")) {
+    	          /*VARREALMSG = "《開通通知簡訊》 "; 
+    	          VARREALMSG += PACKAGE + " -->";
+    	          VARREALMSG += "addon_code=\'" + cAddonCode + "\'";
+    	          VARREALMSG += " and addon_action=\'" + cAddonAction + "\'";*/
+                  VARREALMSG += "親愛的中華電信用戶，您加選的環球卡" + PACKAGE; 
+                  VARREALMSG += "月租服務已經開通囉，優惠期間每月只要" + PAYMENT;
+    	          VARREALMSG += "提醒您手機須先將數據漫遊功能開啟，並請在網路的APN欄位輸入\"CMHK\"。環球卡感謝您！";
+    	          
+    	          if(smsCho)send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
+                  else send_SMS1(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
+                  smsCho=!smsCho;
+     	       } else {
+                  /*VARREALMSG = "《退租通知簡訊》"; 
+                  VARREALMSG += PACKAGE + " -->";
+    	          VARREALMSG += "addon_code=\'" + cAddonCode + "\'";
+    	          VARREALMSG += " and addon_action=\'" + cAddonAction + "\'";*/
+    	          VARREALMSG += "《溫馨提醒》親愛的環球卡用戶，您所選的" + PACKAGE;
+                  VARREALMSG += "服務已經依您選擇完成退租。日後如有需要歡迎隨時加選。環球卡感謝您！";
+                  
+                  if(smsCho)send_SMS(VARREALMSG);
+                  else send_SMS1(VARREALMSG);
+                  smsCho=!smsCho;
+    	       }
+    	       
+    	      
+
+	    	}
 	       
-	       if(smsCho)send_SMS(VARREALMSG);
-	    	else send_SMS1(VARREALMSG);
-	    	smsCho=!smsCho;
 	       
 	       //send_SMS(VARREALMSG);
 
 	       /*****************   Query starts here  ********************/
-	       /* sSql = "update XXX set XXX ='" + cAddonAction + "' where XXX = ''";   ****/
+	       /* sSql = "update xxx set xxx ='" + cAddonAction + "' where xxx = ''";   ****/
 	       /***********************************************************/
 	       
 	       //20140919 Add 
@@ -2192,14 +2245,14 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     	   VARREALMSG="";
     	   VARREALMSG+="親愛的中華客戶：您開通的「環球卡」香港副號為+"+cS2TMSISDN;
     	   VARREALMSG+="。在您抵達香港重新開機後，副號將顯示在手機上。請務必觀看環球卡撥號方式說明影片： http://goo.gl/sUSCHa。";
-    	   VARREALMSG+="香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！如需諮詢請電客服+{{customerService}}。";
+    	   VARREALMSG+="香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！如需諮詢請電客服{{customerService}}。";
     	   VARREALMSG=replaceCSPhone(VARREALMSG);
     	   
     	   //20141205 add
     	   //send_SMS(VARREALMSG);
     	   
-    	   if(smsCho)send_SMS(VARREALMSG);
-	    	else send_SMS1(VARREALMSG);
+    	   if(smsCho)send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
+	    	else send_SMS1(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
 	    	smsCho=!smsCho;
     	   
     	   outA.println("<VLN>");
@@ -2257,11 +2310,11 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     				
     				if(!"".equals(cV)){
     					VARREALMSG="親愛的中華客戶：您開通的「環球卡」"+cV+"副號為+"+cVLNc+"。"
-    							+ "在您抵達"+cV+"重新開機後，副號將顯示在手機上。香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！如需諮詢請電客服+{{customerService}}。";
+    							+ "在您抵達"+cV+"重新開機後，副號將顯示在手機上。香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！如需諮詢請電客服{{customerService}}。";
     					VARREALMSG=replaceCSPhone(VARREALMSG);
     					//send_SMS(VARREALMSG);
-    					if(smsCho)send_SMS(VARREALMSG);
-    			    	else send_SMS1(VARREALMSG);
+    					if(smsCho)send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
+    			    	else send_SMS1(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
     			    	smsCho=!smsCho;
     				}
     			 }else if(sMd.equals("D")) {
@@ -2297,8 +2350,8 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     	   VARREALMSG="提醒您：抵達當地國後請確認關閉飛航模式並重新開機，依照螢幕指示按下\"確定\"，環球卡將切換為當地門號。";
          
     	   //send_SMS1(VARREALMSG);
-    	   if(smsCho)send_SMS(VARREALMSG);
-	    	else send_SMS1(VARREALMSG);
+    	   if(smsCho)send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
+	    	else send_SMS1(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
 	    	smsCho=!smsCho;
 	    	
 	       //20141205 mark
@@ -2313,20 +2366,20 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 	        	 		+ "除中國、香港、澳門、日本、韓國、印尼有每日收費上限外，其餘國家按實際用量收費，不提供吃到飽方案，請謹慎使用。另有香港/大陸月租上網吃到飽服務，歡迎加選。";
 	        
 	        	 //send_SMS(VARREALMSG);
-	        	 if(smsCho)send_SMS(VARREALMSG);
-	 	    	else send_SMS1(VARREALMSG);
+	        	 if(smsCho)send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
+	 	    	else send_SMS1(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
 	 	    	smsCho=!smsCho;
 	        	 
 	        	 VARREALMSG="親愛的環球卡用戶，本公司為協助您控管漫遊上網費用，漫遊上網服務每月費用超過NTD5,000時將自動關閉。"
 	        	 		+ "如您不希望因超出使用金額而被關閉上網服務，請至www.sim2travel.com/chtm/5k.pdf "
 	        	 		+ "下載約定書，或輸入以下內容「請將本人排除此規定」回覆至+886972900154，本公司將為您列入VIP名單，不會在超過額度時自動斷網。"
-	        	 		+ "如需諮詢請電客服+{{customerService}}。";
+	        	 		+ "如需諮詢請電客服{{customerService}}。";
 	        	 
 	        	 VARREALMSG=replaceCSPhone(VARREALMSG);
 	         
 	         	 //send_SMS1(VARREALMSG);
-	        	 if(smsCho)send_SMS(VARREALMSG);
-	 	    	else send_SMS1(VARREALMSG);
+	        	 if(smsCho)send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
+	 	    	else send_SMS1(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
 	 	    	smsCho=!smsCho;
 	         
 	         }
@@ -2423,7 +2476,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
         				
         				if(!"".equals(cV)){
         					VARREALMSG="親愛的中華客戶：您開通的「環球卡」"+cV+"副號為+"+cVLNc+"。"
-        							+ "在您抵達中國重新開機後，副號將顯示在手機上。香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！如需諮詢請電客服+{{customerService}}。";
+        							+ "在您抵達中國重新開機後，副號將顯示在手機上。香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！如需諮詢請電客服{{customerService}}。";
         					VARREALMSG=replaceCSPhone(VARREALMSG);
         					//send_SMS(VARREALMSG);
         					if(smsCho)send_SMS(VARREALMSG);
@@ -2488,29 +2541,34 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 		        /*VARREALMSG="出國使用環球卡數據服務功能時，須先將數據漫遊功能開啟，並且在網路的APN"+
 		                "欄位輸入[peoples.net[。漫遊數據服務依照用量計價，並無收費上限與吃到飽方案，"+
 		                "請斟酌使用。";*/
-        		
+
         		VARREALMSG="親愛的中華客戶：您已開通環球卡數據服務，請先將手機數據漫遊功能開啟，在行動網路設定APN 為\"CMHK\"。"
         				+ "除中國、香港、澳門、日本、韓國、印尼有每日收費上限外，其餘國家按實際用量收費，不提供吃到飽方案，請謹慎使用。"
         				+ "另有香港/大陸月租上網吃到飽服務，歡迎加選。";
         		
         		//send_SMS(VARREALMSG);
-        		if(smsCho)send_SMS(VARREALMSG);
-    	    	else send_SMS1(VARREALMSG);
+        		if(smsCho)send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
+    	    	else send_SMS1(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
     	    	smsCho=!smsCho;
 		        
 		        
         		VARREALMSG="親愛的環球卡用戶，本公司為協助您控管漫遊上網費用，漫遊上網服務每月費用達約NTD5,000時將自動關閉。"
         	  		+ "如您不希望因超出使用金額而被關閉上網功能，影響您的商務進行，請至www.sim2travel.com/chtm/5k.pdf"
         	  		+ "下載約定書，或輸入以下內容回覆本簡訊「請將本人排除此規定」，本公司將為您列入VIP名單，不會在超過額度時自動斷網。"
-        	  		+ "如需諮詢請電客服+{{customerService}}。";
+        	  		+ "如需諮詢請電客服{{customerService}}。";
         		
         		VARREALMSG=replaceCSPhone(VARREALMSG);
         		
         		//send_SMS1(VARREALMSG);
-        		if(smsCho)send_SMS(VARREALMSG);
-    	    	else send_SMS1(VARREALMSG);
+        		if(smsCho)send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
+    	    	else send_SMS1(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
     	    	smsCho=!smsCho;
         	}
+        }
+        //XXX
+        //20150625 add
+        if (cReqStatus.equals("99")){
+        	send_OTA_SMS();
         }
     }
     
@@ -2523,7 +2581,6 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     		  try {
   				cphone=queryCustmerServicePhone(cS2TIMSI);
   			} catch (SQLException e) {
-  				// TODO Auto-generated catch block
   				e.printStackTrace();
   			}
     	  }
@@ -2557,6 +2614,9 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 				}
 			}
 		}
+		if(cphone==null || "".equals(cphone))
+			cphone=queryCustomerServicePhone("466000");
+		
 		return cphone;
 	}
     public String queryVLR(String imsi) throws SQLException{
@@ -2614,6 +2674,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 		while(rs.next()){
 			cPhone=rs.getString("PHONE");
 		}		
+		
 		rs.close();
 		return cPhone;		
 	}
@@ -2818,6 +2879,9 @@ logger.debug("Query_PartnerMSISDNStatus:"+sSql);
                else if ("M_205_OT".equals(TeRtA.getString("MAP_VALUE"))){sValue=cM205OT;}
                else if ("M_VLN".equals(TeRtA.getString("MAP_VALUE"))){sValue=cMVLN;}
                else if ("M_GPRS".equals(TeRtA.getString("MAP_VALUE"))){sValue=cGPRSStatus;}
+               //20150522 add
+               else if ("cGPRS".equals(TeRtA.getString("MAP_VALUE"))){sValue=cGPRS;}
+               
                else if ("M_CTYPE".equals(TeRtA.getString("MAP_VALUE"))){sValue=sM_CTYPE;}
                else if ("FMTH".equals(TeRtA.getString("MAP_VALUE"))){sValue=sFMTH;}
                else if ("FMTH_A".equals(TeRtA.getString("MAP_VALUE"))){sValue=sFMTHa;}
@@ -3086,7 +3150,7 @@ logger.debug("Query_PartnerMSISDNStatus:"+sSql);
 
      public void Process_WorkSubcode_05_17(String S2TImsiB,String TWNImsiB,String sReqStatus,String sTWNLDMSISDN) throws SQLException, IOException{
        Temprs=null;
-       String cMd="",Ssvrid="";
+       String Ssvrid="";//,cMd=""
        sSql="select nvl(serviceid,'0') as ab from imsi "+
              " where imsi = '"+S2TImsiB+"' and homeimsi='"+TWNImsiB+
              "'";
@@ -3180,7 +3244,7 @@ logger.debug("Query_PartnerMSISDNStatus:"+sSql);
 
      public void reProcess_WorkSubcode_05_17(String S2TImsiB,String TWNImsiB,String sStep_No,String sReqStatus,String sTWNLDMSISDN) throws SQLException, IOException{
     Temprs=null;
-       String cMd="",Ssvrid="";
+       String Ssvrid="";//,cMd=""
        sSql="select nvl(serviceid,'0') as ab from imsi "+
              " where imsi = '"+S2TImsiB+"' and homeimsi='"+TWNImsiB+
              "'";
@@ -3301,8 +3365,11 @@ logger.debug("Query_PartnerMSISDNStatus:"+sSql);
         ex.printStackTrace(new PrintWriter(s));
         //20141004 新增 601 DBconnection Error
         logger.error(" DBconnection Error:"+s.toString());
-       bconn=false;}
-    finally {return bconn;}
+       bconn=false;
+       }
+
+    return bconn;
+    
     }
 
      public String Process_VLNString(String Scut)throws Exception{
@@ -3472,7 +3539,7 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
 
     public String Check_VLNStatus(String ScutA) throws IOException, SQLException{
        int iACut=0,iEQ=0;
-        String sVA="",sMA="",strA="",sEA="",sCNN,SQLa="",sEQ="";
+        String sVA="",sMA="",sCNN,SQLa="",sEQ="";//,strA="",sEA=""
         while (ScutA.length()>0){
        iACut=ScutA.indexOf(",");
       if (iACut>0) {
@@ -3524,7 +3591,7 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
     
     public String reCheck_VLNStatus(String ScutA) throws IOException, SQLException{
        int iACut=0,iEQ=0;
-        String sVA="",sMA="",strA="",sEA="",sCNN,SQLa="",sEQ="";
+        String sVA="",sMA="",sCNN,SQLa="",sEQ="";//,strA="",sEA=""
         while (ScutA.length()>0){
        iACut=ScutA.indexOf(",");
       if (iACut>0) {
@@ -3841,7 +3908,8 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
     }
 
      public void Update_VLNNumber() throws SQLException, InterruptedException{
-        String sVlnN="",sVlnName="",sCountry="",sOldVln="";
+        @SuppressWarnings("unused")
+		String sVlnN="",sCountry="",sOldVln="",sVlnName="";//
           vln.firstElement();
           for (n=0; n<vln.size();n++){
             sVln=vln.get(n);
@@ -3883,7 +3951,7 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
     }
 
      public void Query_ByPartnerMSISDN(PrintWriter outA) throws SQLException, InterruptedException, Exception{
-        String cStatus = "", cVln= "", cCountryname = "", cCountryinit = "";
+        String cStatus = "", cVln= "";//, cCountryname = "", cCountryinit = ""
         vln.removeAllElements();
          Temprs=null;
          sSql="SELECT b.homeimsi as homeimsi, b.imsi as imsi,CASE a.status WHEN '1' " +
@@ -4001,7 +4069,7 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
     }
 
      public void Query_ByPartnerIMSI(PrintWriter outA) throws SQLException, InterruptedException, Exception{
-        String cStatus="",cVln="",cCountryinit="",cCountryname="";
+        String cStatus="",cVln="";//,cCountryinit="",cCountryname=""
         vln.removeAllElements();
          
         Temprs = null;
@@ -4381,15 +4449,15 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
   s2t.Update(sSql); }
 }
 
-    public void Send_agree_mail(){
+   /* public void Send_agree_mail(){
       String mailserver=s2tconf.getProperty("mailserver");
       String From=s2tconf.getProperty("From");
       String to=s2tconf.getProperty("false");
       String Subject,messageText;
       InternetAddress[] ToAddress=null;
-    }
+    }*/
 
-    public void Send_AlertMail(){
+/*    public void Send_AlertMail(){
       try{
       String Smailserver=s2tconf.getProperty("mailserver");
       String SFrom=s2tconf.getProperty("From");
@@ -4437,6 +4505,69 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
            logger.info("Send Mail Content:"+SmessageText);}
         catch(Exception ex){
           logger.error("JAVA Error:"+ex.toString());}
+      }*/
+    
+    //20150625 add
+    public void Send_AlertMail(){
+    	String Sto=s2tconf.getProperty("RDGroup");
+    	String SSubject,SmessageText;
+        SSubject=dReqDate+"-"+cTicketNumber+"-"+cTWNLDMSISDN+"-"+cReqStatus+
+                " Error:"+cRCode;
+        SmessageText = "DateTime=" +dReqDate+
+                      "<br>Ticket_Number=" + cTicketNumber +
+                      "<br>TWNLD_IMSI=" +cTWNLDIMSI +
+                      "<br>TWNLD_MSISDN=" +cTWNLDMSISDN+
+                      "<br>S2T_IMSI=" +cS2TIMSI+
+                      "<br>Req_Status=" +cReqStatus+
+                      "<br>VLN_Country="+cVLNCountry+
+                      "<br>GPRS_Status="+cGPRS+
+                      "<br>Return_Code:"+cRCode+
+                      "<br>Description:"+desc+
+                      "<br>Addon_Code:"+cAddonCode+
+                      "<br>Addon_Action:"+cAddonAction+
+                      "<br><br>iError Tag:"+iError+
+                      "<br>iError_Message:"+iErrorMsg;
+
+		
+		String [] cmd=new String[3];
+		cmd[0]="/bin/bash";
+		cmd[1]="-c";
+		cmd[2]= "/bin/echo \""+SmessageText+"\" | /bin/mailx -s \""+SSubject+"\" -r TWNLD_ALERT "+Sto;
+
+		try{
+			Process p = Runtime.getRuntime().exec (cmd);
+			p.waitFor();
+			logger.info("send mail cmd:"+cmd);
+		}catch (Exception e){
+			StringWriter s = new StringWriter();
+			e.printStackTrace(new PrintWriter(s));
+			logger.error("send mail fail:"+SmessageText+"。\n"+s);
+		}
+	}
+    
+    public void Send_AlertMail(String content){
+    	
+    	String Sto=s2tconf.getProperty("RDGroup");
+        String SSubject,SmessageText;
+        SSubject=dReqDate+"-"+cTicketNumber+"-"+cTWNLDMSISDN+"-"+cReqStatus+
+                " Error:"+cRCode;
+        SmessageText = content;   
+        
+    	try{
+	        String [] cmd=new String[3];
+			cmd[0]="/bin/bash";
+			cmd[1]="-c";
+			cmd[2]= "/bin/echo \""+SmessageText+"\" | /bin/mailx -s \""+SSubject+"\" -r TWNLD_ALERT "+Sto;
+			
+		
+			Process p = Runtime.getRuntime().exec (cmd);
+			p.waitFor();
+			logger.info("send mail cmd:"+cmd);
+		}catch (Exception e){
+			StringWriter s = new StringWriter();
+			e.printStackTrace(new PrintWriter(s));
+			logger.error("send mail fail:"+SmessageText+"。\n"+s);
+		}
       }
 
     public void read_xml(Document doc){
@@ -4560,9 +4691,52 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
             
     }
 
+    ///20150625 add
+    public void send_OTA_SMS(){
+    	logger.debug("send_OTA_SMS");
+    	try {
+    		String res = setOTASMSPostParam("", cTWNLDMSISDN);
+			logger.debug("send OTA sms result : " + res);
+			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
+					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+cTWNLDMSISDN+"', SYSDATE, 'OTA Message')";
+			logger.debug("SMS:" + sSql);
+			
+			//寫入資料庫
+			s2t.Inster(sSql);
+		} catch (IOException e) {
+			logger.error("IOException",e);
+        	java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+		} catch (SQLException e) {
+			logger.error("SQLException",e);
+            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+            sErrorSQL+=sSql;
+		}
+    }
     public void send_SMS(String VARREALMSG1){
+    	logger.debug("send_SMS");
+    	//SimpleDateFormat spf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+    	//20150514 add
+    	try {
+    		VARREALMSG1 = new String(VARREALMSG1.getBytes("BIG5"), "ISO-8859-1");
+			String res = setSMSPostParam(VARREALMSG1, cTWNLDMSISDN);
+			logger.debug("send sms result : " + res);
+			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
+					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+cTWNLDMSISDN+"', SYSDATE, '"+VARREALMSG1+"')";
+			logger.debug("SMS:" + sSql);
+			
+			//寫入資料庫
+			s2t.Inster(sSql);
+		} catch (IOException e) {
+			logger.error("IOException",e);
+        	java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+		} catch (SQLException e) {
+			logger.error("SQLException",e);
+            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+            sErrorSQL+=sSql;
+		}
     	
-        try {
+    	//20150514 mod
+        /*try {
             VARREALMSG1 = new String(VARREALMSG1.getBytes("BIG5"), "ISO-8859-1");
             sSql = "INSERT INTO MESSAGETASK (MESSAGETASKID, TYPE, SUBSIDIARYID, " +
                     "SERVICEID," + " SERVICECODE, SERVICETYPE, CONTROLFLAG, PRIORITY," +
@@ -4581,11 +4755,59 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
         } catch (UnsupportedEncodingException ex) {
         	logger.error("UnsupportedEncodingException",ex);
             java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
+        }*/
+    }
+    public void send_SMS(String VARREALMSG1,String sendtime){
+    	logger.debug("send_SMS delay");
+    	Map<String,String> map = new HashMap<String,String>();
+    	map.put("VARREALMSG", VARREALMSG1);
+    	map.put("TWNLDMSISDN", cTWNLDMSISDN);
+    	map.put("sendtime", sendtime);
+    	delaySMS.add(map);
+    	
+    	try {
+    		VARREALMSG1 = new String(VARREALMSG1.getBytes("BIG5"), "ISO-8859-1");
+
+			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
+					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+cTWNLDMSISDN+"', to_date('"+sendtime+"','yyyyMMddhh24mi'), '"+VARREALMSG1+"')";
+			logger.debug("SMS:" + sSql);
+			
+			//寫入資料庫
+			s2t.Inster(sSql);
+		} catch (IOException e) {
+			logger.error("IOException",e);
+        	java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+		} catch (SQLException e) {
+			logger.error("SQLException",e);
+            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+            sErrorSQL+=sSql;
+		}
     }
 
     public void send_SMS1(String VARREALMSG2){
-        try {
+    	logger.debug("send_SMS1");
+    	//20150514 add
+    	try {
+    		VARREALMSG2 = new String(VARREALMSG2.getBytes("BIG5"), "ISO-8859-1");
+			String res = setSMSPostParam(VARREALMSG2, cTWNLDMSISDN);
+			logger.debug("send sms result : " + res);
+			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
+					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+cTWNLDMSISDN+"', SYSDATE, '"+VARREALMSG2+"')";
+			logger.debug("SMS:" + sSql);
+			
+			//寫入資料庫
+			s2t.Inster(sSql);
+		} catch (IOException e) {
+			logger.error("IOException",e);
+        	java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+		} catch (SQLException e) {
+			logger.error("SQLException",e);
+            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+            sErrorSQL+=sSql;
+		}
+    	
+    	//20150514 mod
+       /* try {
             VARREALMSG2 = new String(VARREALMSG2.getBytes("BIG5"), "ISO-8859-1");
             sSql = "INSERT INTO MESSAGETASK (MESSAGETASKID, TYPE, SUBSIDIARYID, " +
                     "SERVICEID," + " SERVICECODE, SERVICETYPE, CONTROLFLAG, PRIORITY," +
@@ -4604,7 +4826,55 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
         } catch (UnsupportedEncodingException ex) {
         	logger.error("UnsupportedEncodingException",ex);
         	java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
+        }*/
+    }
+    
+    public void send_SMS1(String VARREALMSG2,String sendtime){
+    	logger.debug("send_SMS1 dalay");
+    	Map<String,String> map = new HashMap<String,String>();
+    	map.put("VARREALMSG", VARREALMSG2);
+    	map.put("TWNLDMSISDN", cTWNLDMSISDN);
+    	map.put("sendtime", sendtime);
+    	delaySMS.add(map);
+    	
+    	try {
+    		VARREALMSG2 = new String(VARREALMSG2.getBytes("BIG5"), "ISO-8859-1");
+
+			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
+					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+cTWNLDMSISDN+"', to_date('"+sendtime+"','yyyyMMddhh24mi'), '"+VARREALMSG2+"')";
+			logger.debug("SMS:" + sSql);
+			
+			//寫入資料庫
+			s2t.Inster(sSql);
+		} catch (IOException e) {
+			logger.error("IOException",e);
+        	java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+		} catch (SQLException e) {
+			logger.error("SQLException",e);
+            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+            sErrorSQL+=sSql;
+		}
+    }
+  //20150520 add
+    public void send_dalay_SMS(List<Map<String,String>> sms){
+    	
+    	for(Map<String,String> map : sms){
+    		String VARREALMSG = map.get("VARREALMSG");
+    		String TWNLDMSISDN = map.get("TWNLDMSISDN");
+        	try {
+        		VARREALMSG = new String(VARREALMSG.getBytes("BIG5"), "ISO-8859-1");
+    			String res = setSMSPostParam(VARREALMSG, TWNLDMSISDN);
+    			logger.debug("SendSMS   Msg="+VARREALMSG+",result="+res);  
+    		} catch (IOException e) {
+    			logger.error("IOException",e);
+            	java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+            	StringWriter s = new StringWriter();
+            	e.printStackTrace(new PrintWriter(s));
+            	//Send_AlertMail2("send delay sms error! \n"+ s.toString());
+            	//20150625 add
+            	Send_AlertMail("send delay sms error! \n"+ s.toString());
+    		}
+    	}
     }
 
     public String Check_Pair_IMSI(String TWNImsi,String S2TImsi) throws SQLException{
@@ -4810,4 +5080,134 @@ public String Check_TWN_Msisdn_Status(String TWNImsiA,String S2TImsiA) throws SQ
  public String getServletInfo() {
         return "Short description";
     }// </editor-fold>
+    
+    private String setOTASMSPostParam(String msg,String phone) throws IOException{
+		//StringBuffer sb=new StringBuffer ();
+
+		String PhoneNumber=phone,Text=msg,charset="big5",InfoCharCounter=null,PID=null,DCS=null;
+		String param =
+				"PhoneNumber=+{{PhoneNumber}}&"
+				+ "UNUSED=on&"
+				+ "UDH=&"
+				+ "Data=B30200F1&"
+				+ "PID=7F&"
+				+ "DCS=F6&"
+				+ "Submit=Submit&"
+				+ "Binary=1";
+		
+		if(PhoneNumber==null)PhoneNumber="";
+		if(Text==null)Text="";
+		//if(charset==null)charset="";
+		if(InfoCharCounter==null)InfoCharCounter="";
+		if(PID==null)PID="";
+		if(DCS==null)DCS="";
+		param=param.replace("{{PhoneNumber}}",PhoneNumber );
+		param=param.replace("{{Text}}",Text.replaceAll("/+", "%2b") );
+		param=param.replace("{{charset}}",charset );
+		param=param.replace("{{InfoCharCounter}}",InfoCharCounter );
+		param=param.replace("{{PID}}",PID );
+		param=param.replace("{{DCS}}",DCS );
+
+		return HttpPost("http://192.168.10.125:8800/Send Binary Message Other.htm",param,"");
+	}
+    
+    private String setSMSPostParam(String msg,String phone) throws IOException{
+		//StringBuffer sb=new StringBuffer ();
+
+		String PhoneNumber=phone,Text=msg,charset="big5",InfoCharCounter=null,PID=null,DCS=null;
+		String param =
+				"PhoneNumber=+{{PhoneNumber}}&"
+				+ "Text={{Text}}&"
+				+ "charset={{charset}}&"
+				+ "InfoCharCounter={{InfoCharCounter}}&"
+				+ "PID={{PID}}&"
+				+ "DCS={{DCS}}&"
+				+ "Submit=Submit";
+		
+		if(PhoneNumber==null)PhoneNumber="";
+		if(Text==null)Text="";
+		//if(charset==null)charset="";
+		if(InfoCharCounter==null)InfoCharCounter="";
+		if(PID==null)PID="";
+		if(DCS==null)DCS="";
+		param=param.replace("{{PhoneNumber}}",PhoneNumber );
+		param=param.replace("{{Text}}",Text.replaceAll("/+", "%2b") );
+		param=param.replace("{{charset}}",charset );
+		param=param.replace("{{InfoCharCounter}}",InfoCharCounter );
+		param=param.replace("{{PID}}",PID );
+		param=param.replace("{{DCS}}",DCS );
+
+		return HttpPost("http://192.168.10.125:8800/Send%20Text%20Message.htm", param,"");
+	}
+    @SuppressWarnings("unused")
+	private String setSMSPostParam(String msg,String phone,String sendtime) throws IOException{
+		StringBuffer sb=new StringBuffer ();
+
+		String PhoneNumber=phone,Text=msg,charset="big5",InfoCharCounter=null,PID=null,DCS=null,Sendtime=sendtime;
+		String param =
+				"PhoneNumber=+{{PhoneNumber}}&"
+				+ "Text={{Text}}&"
+				+ "charset={{charset}}&"
+				+ "InfoCharCounter={{InfoCharCounter}}&"
+				+ "PID={{PID}}&"
+				+ "DCS={{DCS}}&"
+				+ "DelayUntil={{DelayUntil}}&"
+				+ "Submit=Submit";
+		
+		if(PhoneNumber==null)PhoneNumber="";
+		if(Text==null)Text="";
+		if(charset==null)charset="";
+		if(InfoCharCounter==null)InfoCharCounter="";
+		if(PID==null)PID="";
+		if(DCS==null)DCS="";
+		if(Sendtime==null)Sendtime="";
+		param=param.replace("{{PhoneNumber}}",PhoneNumber );
+		param=param.replace("{{Text}}",Text.replaceAll("/+", "%2b") );
+		param=param.replace("{{charset}}",charset );
+		param=param.replace("{{InfoCharCounter}}",InfoCharCounter );
+		param=param.replace("{{PID}}",PID );
+		param=param.replace("{{DCS}}",DCS );
+		param=param.replace("{{DelayUntil}}",Sendtime );
+
+		return HttpPost("http://192.168.10.125:8800/Send%20Text%20Message.htm", param,"");
+	}
+    public String HttpPost(String url,String param,String charset) throws IOException{
+		URL obj = new URL(url);
+		
+		if(charset!=null && !"".equals(charset))
+			param=URLEncoder.encode(param, charset);
+		
+		
+		HttpURLConnection con =  (HttpURLConnection) obj.openConnection();
+ 
+		//add reuqest header
+		/*con.setRequestMethod("POST");
+		con.setRequestProperty("User-Agent", USER_AGENT);
+		con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");*/
+ 
+		// Send post request
+		con.setDoOutput(true);
+		DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+		wr.writeBytes(param);
+		wr.flush();
+		wr.close();
+ 
+		int responseCode = con.getResponseCode();
+		System.out.println("\nSending 'POST' request to URL("+new Date()+") : " + url);
+		System.out.println("Post parameters : " + new String(param.getBytes("ISO8859-1")));
+		System.out.println("Response Code : " + responseCode);
+
+		BufferedReader in = new BufferedReader(
+		        new InputStreamReader(con.getInputStream()));
+		String inputLine;
+		StringBuffer response = new StringBuffer();
+ 
+		while ((inputLine = in.readLine()) != null) {
+			response.append(inputLine);
+		}
+		in.close();
+ 
+		//print result
+		return(response.toString());
+	}
 }
