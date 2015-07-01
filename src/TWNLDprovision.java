@@ -81,7 +81,7 @@ public class TWNLDprovision extends HttpServlet {
 	 */
 	private static final long serialVersionUID = 1L;
 	public Statement Tempsm=null;
-    private static Logger logger;//,sconf
+    public static Logger logger;//,sconf
     public ProcessS2T.PS2T s2t = new ProcessS2T.PS2T();
     static ResultSet Temprs=null;
     static ResultSet TempRtA=null;
@@ -106,7 +106,7 @@ public class TWNLDprovision extends HttpServlet {
     ResultSet TempRt=null;
     static Runtime runtime = Runtime.getRuntime();
     static String Run_Shell="",Process_Code=null,Old_result_flag=null,Ssubsidiaryid="59";
-    static Properties s2tconf = new Properties();
+    public static Properties s2tconf = new Properties();
     int i,n=0,y,l,f,iVLN,iError=0,iCut=0,iCountA=0;
     boolean  ba,bb,bc,bd,sessionDebug = true;
     public java.util.Properties props = System.getProperties();
@@ -116,6 +116,9 @@ public class TWNLDprovision extends HttpServlet {
     
     //20140919 Add RecordErrorSQL
     String sErrorSQL="",iErrorMsg="";
+    
+    
+    int SMS_Delay_Time = 5*60*1000;
     
     static //20141121 add for customer service number
     Connection conn2 = null ; 
@@ -383,7 +386,8 @@ public class TWNLDprovision extends HttpServlet {
 		/*********************************************************/
         
         Load_Properties(out,getServletContext().getRealPath("/"));
-        
+
+        SMS_Delay_Time =Integer.parseInt(s2tconf.getProperty("SMS_Delay_Time", "30"))*60*1000;
         
         /*logger.info("The received XML content: ");
     	logger.info(request.getReader().readLine()); 
@@ -619,10 +623,10 @@ public class TWNLDprovision extends HttpServlet {
         if(!"18".equals(cReqStatus) || cAddonItem.size()>0){
       	  if ((!cReqStatus.equals("97"))||(!cReqStatus.equals("98"))) {
               try {
-				runtime.exec(s2tconf.getProperty("Run_Shell"));
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+					runtime.exec(s2tconf.getProperty("Run_Shell"));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
   				  //Send False Mail
   				 if ((!Process_Code.equals("000"))||(!cRCode.equals("000"))){
   					Send_AlertMail();
@@ -638,17 +642,17 @@ public class TWNLDprovision extends HttpServlet {
   
           //20150520 add  
           //delay 30 minute to send
-          Thread t = new Thread(new ThreadExample2(delaySMS) );
+          /*Thread t = new Thread(new ThreadExample2(delaySMS) );
 		   
 		  t.setDaemon(true);
-		  t.start(); 
+		  t.start();*/ 
           
       }
         //} //synchronized end
       
       
     }
-    int SMS_Delay_Time = 30*60*1000;
+    
     public class ThreadExample2 implements Runnable {
     	List<Map<String,String>> delaySMS =new ArrayList<Map<String,String>>();
     	public ThreadExample2(List<Map<String,String>> delaySMS){
@@ -2565,7 +2569,6 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     	    	smsCho=!smsCho;
         	}
         }
-        //XXX
         //20150625 add
         if (cReqStatus.equals("99")){
         	send_OTA_SMS();
@@ -2685,19 +2688,19 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 
     public void S501(PrintWriter outA,String sRCode){
         logger.debug("sRCode:"+sRCode);
-             if ((!sRCode.equals("500"))||(!sRCode.equals("501"))){
-            try {
-                sWSFStatus = "O";
-                sWSFDStatus = "I";
-                Process_SyncFile(sWSFStatus);
-                Process_SyncFileDtl(sWSFDStatus);
-            } catch (SQLException ex) {
-                java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-                sErrorSQL+=sSql;
-            } catch (Exception ex) {
-                java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-            }
-}
+        if ((!sRCode.equals("500"))||(!sRCode.equals("501"))){
+			try {
+			    sWSFStatus = "O";
+			sWSFDStatus = "I";
+			    Process_SyncFile(sWSFStatus);
+			    Process_SyncFileDtl(sWSFDStatus);
+			} catch (SQLException ex) {
+			    sErrorSQL+=sSql;
+			    ErrorHandle(ex);
+			} catch (Exception ex) {
+				ErrorHandle(ex);
+			}
+        }
           if (cReqStatus.equals("00")) {
          outA.println("<GPRS_Status>");
          outA.println(cGPRS);
@@ -3361,10 +3364,8 @@ logger.debug("Query_PartnerMSISDNStatus:"+sSql);
         if (bconn==true){bconn=true;}
         else {bconn=false;}
    }catch(Exception ex){
-       StringWriter   s   =   new   StringWriter();
-        ex.printStackTrace(new PrintWriter(s));
         //20141004 新增 601 DBconnection Error
-        logger.error(" DBconnection Error:"+s.toString());
+        logger.error(" DBconnection Error",ex);
        bconn=false;
        }
 
@@ -4539,9 +4540,7 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
 			p.waitFor();
 			logger.info("send mail cmd:"+cmd);
 		}catch (Exception e){
-			StringWriter s = new StringWriter();
-			e.printStackTrace(new PrintWriter(s));
-			logger.error("send mail fail:"+SmessageText+"。\n"+s);
+			logger.error("send mail fail:"+SmessageText+"。",e);
 		}
 	}
     
@@ -4564,9 +4563,7 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
 			p.waitFor();
 			logger.info("send mail cmd:"+cmd);
 		}catch (Exception e){
-			StringWriter s = new StringWriter();
-			e.printStackTrace(new PrintWriter(s));
-			logger.error("send mail fail:"+SmessageText+"。\n"+s);
+			logger.error("send mail fail:"+SmessageText+"。",e);
 		}
       }
 
@@ -4694,46 +4691,65 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
     ///20150625 add
     public void send_OTA_SMS(){
     	logger.debug("send_OTA_SMS");
+    	
+    	//20150626 add
+    	String phone=cTWNLDMSISDN;
+    	if("true".equals(s2tconf.getProperty("TestMod"))){
+    		phone=s2tconf.getProperty("TestPhoneNumber");
+    	}
+    	
     	try {
-    		String res = setOTASMSPostParam("", cTWNLDMSISDN);
+    		String res = setOTASMSPostParam("", phone);
 			logger.debug("send OTA sms result : " + res);
 			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
-					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+cTWNLDMSISDN+"', SYSDATE, 'OTA Message')";
+					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+phone+"', SYSDATE, 'OTA Message')";
 			logger.debug("SMS:" + sSql);
 			
 			//寫入資料庫
 			s2t.Inster(sSql);
 		} catch (IOException e) {
-			logger.error("IOException",e);
-        	java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+			ErrorHandle("IOException",e);
 		} catch (SQLException e) {
-			logger.error("SQLException",e);
-            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
-            sErrorSQL+=sSql;
+			ErrorHandle("SQLException",e);
 		}
     }
     public void send_SMS(String VARREALMSG1){
     	logger.debug("send_SMS");
+    	
+    	
+    	//20150626 add
+    	String phone=cTWNLDMSISDN;
+    	if("true".equals(s2tconf.getProperty("TestMod"))){
+    		phone=s2tconf.getProperty("TestPhoneNumber");
+    	}
+    	
     	//SimpleDateFormat spf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
     	//20150514 add
     	try {
     		VARREALMSG1 = new String(VARREALMSG1.getBytes("BIG5"), "ISO-8859-1");
-			String res = setSMSPostParam(VARREALMSG1, cTWNLDMSISDN);
+			String res = setSMSPostParam(VARREALMSG1, phone);
 			logger.debug("send sms result : " + res);
+			
+			if(res.indexOf("Message Submitted")==-1){
+				throw new Exception("Sendding SMS Error!<br>"
+						+ "cTWNLDMSISDN="+phone+"<br>"
+						+ "VARREALMSG="+VARREALMSG1);
+			}
+			
 			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
-					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+cTWNLDMSISDN+"', SYSDATE, '"+VARREALMSG1+"')";
+					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+phone+"', SYSDATE, '"+VARREALMSG1+"')";
 			logger.debug("SMS:" + sSql);
 			
 			//寫入資料庫
 			s2t.Inster(sSql);
 		} catch (IOException e) {
-			logger.error("IOException",e);
-        	java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+			ErrorHandle("IOException",e);
 		} catch (SQLException e) {
-			logger.error("SQLException",e);
-            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
-            sErrorSQL+=sSql;
+			ErrorHandle("SQLException",e);
+		} catch (Exception e) {
+			ErrorHandle(e);
 		}
+
     	
     	//20150514 mod
         /*try {
@@ -4757,53 +4773,86 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
             java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }*/
     }
+    
+    public void ErrorHandle(Exception e){
+    	StringWriter s = new StringWriter();
+		e.printStackTrace(new PrintWriter(s));
+		logger.error(e);
+		Send_AlertMail(s.toString());
+    }
+    public void ErrorHandle(String cont,Exception e){
+		StringWriter s = new StringWriter();
+		e.printStackTrace(new PrintWriter(s));
+		logger.error(cont,e);
+		Send_AlertMail(cont+"<br>"+s);
+	}
+    
     public void send_SMS(String VARREALMSG1,String sendtime){
     	logger.debug("send_SMS delay");
+    	
+
+    	//20150626 add
+    	String phone=cTWNLDMSISDN;
+    	if("true".equals(s2tconf.getProperty("TestMod"))){
+    		phone=s2tconf.getProperty("TestPhoneNumber");
+    	}
+    	
+    	
     	Map<String,String> map = new HashMap<String,String>();
     	map.put("VARREALMSG", VARREALMSG1);
-    	map.put("TWNLDMSISDN", cTWNLDMSISDN);
+    	map.put("TWNLDMSISDN", phone);
     	map.put("sendtime", sendtime);
-    	delaySMS.add(map);
+    	//XXX
+    	SMSThread.delaySMS.add(map);
     	
     	try {
     		VARREALMSG1 = new String(VARREALMSG1.getBytes("BIG5"), "ISO-8859-1");
 
 			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
-					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+cTWNLDMSISDN+"', to_date('"+sendtime+"','yyyyMMddhh24mi'), '"+VARREALMSG1+"')";
+					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+phone+"', to_date('"+sendtime+"','yyyyMMddhh24mi'), '"+VARREALMSG1+"')";
 			logger.debug("SMS:" + sSql);
 			
 			//寫入資料庫
 			s2t.Inster(sSql);
 		} catch (IOException e) {
-			logger.error("IOException",e);
-        	java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+			ErrorHandle("IOException",e);
 		} catch (SQLException e) {
-			logger.error("SQLException",e);
-            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
-            sErrorSQL+=sSql;
+			ErrorHandle("SQLException",e);
 		}
     }
 
     public void send_SMS1(String VARREALMSG2){
     	logger.debug("send_SMS1");
+    	
+    	//20150626 add
+    	String phone=cTWNLDMSISDN;
+    	if("true".equals(s2tconf.getProperty("TestMod"))){
+    		phone=s2tconf.getProperty("TestPhoneNumber");
+    	}
+    	
     	//20150514 add
     	try {
     		VARREALMSG2 = new String(VARREALMSG2.getBytes("BIG5"), "ISO-8859-1");
-			String res = setSMSPostParam(VARREALMSG2, cTWNLDMSISDN);
+			String res = setSMSPostParam(VARREALMSG2, phone);
 			logger.debug("send sms result : " + res);
+			if(res.indexOf("Message Submitted")==-1){
+				throw new Exception("Sendding SMS Error!<br>"
+						+ "cTWNLDMSISDN="+phone+"<br>"
+						+ "VARREALMSG="+VARREALMSG2);
+			}
+			
 			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
-					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+cTWNLDMSISDN+"', SYSDATE, '"+VARREALMSG2+"')";
+					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+phone+"', SYSDATE, '"+VARREALMSG2+"')";
 			logger.debug("SMS:" + sSql);
 			
 			//寫入資料庫
 			s2t.Inster(sSql);
 		} catch (IOException e) {
-			logger.error("IOException",e);
-        	java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+			ErrorHandle("IOException",e);
 		} catch (SQLException e) {
-			logger.error("SQLException",e);
-            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
-            sErrorSQL+=sSql;
+			ErrorHandle("SQLException",e);
+		} catch (Exception e) {
+			ErrorHandle(e);
 		}
     	
     	//20150514 mod
@@ -4829,30 +4878,36 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
         }*/
     }
     
+    
+    
     public void send_SMS1(String VARREALMSG2,String sendtime){
     	logger.debug("send_SMS1 dalay");
+    	//20150626 add
+    	String phone=cTWNLDMSISDN;
+    	if("true".equals(s2tconf.getProperty("TestMod"))){
+    		phone=s2tconf.getProperty("TestPhoneNumber");
+    	}
+    	
     	Map<String,String> map = new HashMap<String,String>();
     	map.put("VARREALMSG", VARREALMSG2);
-    	map.put("TWNLDMSISDN", cTWNLDMSISDN);
+    	map.put("TWNLDMSISDN", phone);
     	map.put("sendtime", sendtime);
-    	delaySMS.add(map);
+    	//XXX
+    	SMSThread.delaySMS.add(map);
     	
     	try {
     		VARREALMSG2 = new String(VARREALMSG2.getBytes("BIG5"), "ISO-8859-1");
 
 			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
-					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+cTWNLDMSISDN+"', to_date('"+sendtime+"','yyyyMMddhh24mi'), '"+VARREALMSG2+"')";
+					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+phone+"', to_date('"+sendtime+"','yyyyMMddhh24mi'), '"+VARREALMSG2+"')";
 			logger.debug("SMS:" + sSql);
 			
 			//寫入資料庫
 			s2t.Inster(sSql);
 		} catch (IOException e) {
-			logger.error("IOException",e);
-        	java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
+			ErrorHandle("IOException",e);
 		} catch (SQLException e) {
-			logger.error("SQLException",e);
-            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
-            sErrorSQL+=sSql;
+			ErrorHandle("SQLException",e);
 		}
     }
   //20150520 add
@@ -4865,15 +4920,19 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
         		VARREALMSG = new String(VARREALMSG.getBytes("BIG5"), "ISO-8859-1");
     			String res = setSMSPostParam(VARREALMSG, TWNLDMSISDN);
     			logger.debug("SendSMS   Msg="+VARREALMSG+",result="+res);  
+    			if(res.indexOf("Message Submitted")==-1){
+    				throw new Exception("Sendding SMS Error!<br>"
+    						+ "cTWNLDMSISDN="+TWNLDMSISDN+"<br>"
+    						+ "VARREALMSG="+VARREALMSG);
+    			}
     		} catch (IOException e) {
-    			logger.error("IOException",e);
-            	java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
-            	StringWriter s = new StringWriter();
-            	e.printStackTrace(new PrintWriter(s));
             	//Send_AlertMail2("send delay sms error! \n"+ s.toString());
             	//20150625 add
-            	Send_AlertMail("send delay sms error! \n"+ s.toString());
-    		}
+            	//20150626 mod
+            	ErrorHandle("send delay sms error!",e);
+    		} catch (Exception e) {
+    			ErrorHandle(e);
+			}
     	}
     }
 
@@ -5039,13 +5098,12 @@ public String Check_TWN_Msisdn_Status(String TWNImsiA,String S2TImsiA) throws SQ
         try {
             processRequest(request, response);
         } catch (SQLException ex) {
-            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-            sErrorSQL+=sSql;
-        } catch (InterruptedException ex) {
-            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (Exception ex) {
-            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
+        	ErrorHandle(ex);
+    	} catch (InterruptedException ex) {
+    		ErrorHandle(ex);
+		} catch (Exception ex) {
+			ErrorHandle(ex);
+		}
     }
 
     /**
@@ -5061,15 +5119,14 @@ public String Check_TWN_Msisdn_Status(String TWNImsiA,String S2TImsiA) throws SQ
         try {
             processRequest(request, response);
         } catch (SQLException ex) {
-            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-            sErrorSQL+=sSql;
+        	ErrorHandle(ex);
         } catch (InterruptedException ex) {
-            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (Exception ex) {
-            java.util.logging.Logger.getLogger(TWNLDprovision.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
+        	ErrorHandle(ex);
+    	} catch (Exception ex) {
+    		ErrorHandle(ex);
+		}
 
-        }
+    }
 
 
     /**
@@ -5136,38 +5193,6 @@ public String Check_TWN_Msisdn_Status(String TWNImsiA,String S2TImsiA) throws SQ
 		param=param.replace("{{InfoCharCounter}}",InfoCharCounter );
 		param=param.replace("{{PID}}",PID );
 		param=param.replace("{{DCS}}",DCS );
-
-		return HttpPost("http://192.168.10.125:8800/Send%20Text%20Message.htm", param,"");
-	}
-    @SuppressWarnings("unused")
-	private String setSMSPostParam(String msg,String phone,String sendtime) throws IOException{
-		StringBuffer sb=new StringBuffer ();
-
-		String PhoneNumber=phone,Text=msg,charset="big5",InfoCharCounter=null,PID=null,DCS=null,Sendtime=sendtime;
-		String param =
-				"PhoneNumber=+{{PhoneNumber}}&"
-				+ "Text={{Text}}&"
-				+ "charset={{charset}}&"
-				+ "InfoCharCounter={{InfoCharCounter}}&"
-				+ "PID={{PID}}&"
-				+ "DCS={{DCS}}&"
-				+ "DelayUntil={{DelayUntil}}&"
-				+ "Submit=Submit";
-		
-		if(PhoneNumber==null)PhoneNumber="";
-		if(Text==null)Text="";
-		if(charset==null)charset="";
-		if(InfoCharCounter==null)InfoCharCounter="";
-		if(PID==null)PID="";
-		if(DCS==null)DCS="";
-		if(Sendtime==null)Sendtime="";
-		param=param.replace("{{PhoneNumber}}",PhoneNumber );
-		param=param.replace("{{Text}}",Text.replaceAll("/+", "%2b") );
-		param=param.replace("{{charset}}",charset );
-		param=param.replace("{{InfoCharCounter}}",InfoCharCounter );
-		param=param.replace("{{PID}}",PID );
-		param=param.replace("{{DCS}}",DCS );
-		param=param.replace("{{DelayUntil}}",Sendtime );
 
 		return HttpPost("http://192.168.10.125:8800/Send%20Text%20Message.htm", param,"");
 	}
