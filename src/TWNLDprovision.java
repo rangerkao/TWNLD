@@ -388,7 +388,7 @@ public class TWNLDprovision extends HttpServlet {
         Load_Properties(out,getServletContext().getRealPath("/"));
 
         SMS_Delay_Time =Integer.parseInt(s2tconf.getProperty("SMS_Delay_Time", "30"))*60*1000;
-        
+        logger.info("SMS_Delay_Time="+SMS_Delay_Time);
         /*logger.info("The received XML content: ");
     	logger.info(request.getReader().readLine()); 
     	
@@ -2184,8 +2184,8 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     	          VARREALMSG += "《溫馨提醒》親愛的環球卡用戶，您所選的" + PACKAGE;
                   VARREALMSG += "服務已經依您選擇完成退租。日後如有需要歡迎隨時加選。環球卡感謝您！";
                   
-                  if(smsCho)send_SMS(VARREALMSG);
-                  else send_SMS1(VARREALMSG);
+                  if(smsCho)send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
+                  else send_SMS1(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
                   smsCho=!smsCho;
     	       }
     	       
@@ -2483,8 +2483,8 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
         							+ "在您抵達中國重新開機後，副號將顯示在手機上。香港/大陸無限上網包上線囉，每月只要NTD599/999，歡迎加選，環球卡感謝您！如需諮詢請電客服{{customerService}}。";
         					VARREALMSG=replaceCSPhone(VARREALMSG);
         					//send_SMS(VARREALMSG);
-        					if(smsCho)send_SMS(VARREALMSG);
-        			    	else send_SMS1(VARREALMSG);
+        					if(smsCho)send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
+        			    	else send_SMS1(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
         			    	smsCho=!smsCho;
         				}
         				
@@ -4458,7 +4458,7 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
       InternetAddress[] ToAddress=null;
     }*/
 
-/*    public void Send_AlertMail(){
+    public void Send_AlertMail(){
       try{
       String Smailserver=s2tconf.getProperty("mailserver");
       String SFrom=s2tconf.getProperty("From");
@@ -4493,7 +4493,7 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
         logger.error("JAVA Error:"+ex.toString());}
     }
     
-    public void Send_AlertMail2(String content){
+    public void Send_AlertMail(String content){
         try{
         String Smailserver=s2tconf.getProperty("mailserver");
         String SFrom=s2tconf.getProperty("From");
@@ -4506,10 +4506,10 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
            logger.info("Send Mail Content:"+SmessageText);}
         catch(Exception ex){
           logger.error("JAVA Error:"+ex.toString());}
-      }*/
+      }
     
     //20150625 add
-    public void Send_AlertMail(){
+    /*public void Send_AlertMail(){
     	String Sto=s2tconf.getProperty("RDGroup");
     	String SSubject,SmessageText;
         SSubject=dReqDate+"-"+cTicketNumber+"-"+cTWNLDMSISDN+"-"+cReqStatus+
@@ -4536,9 +4536,9 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
 		cmd[2]= "/bin/echo \""+SmessageText+"\" | /bin/mailx -s \""+SSubject+"\" -r TWNLD_ALERT "+Sto;
 
 		try{
-			Process p = Runtime.getRuntime().exec (cmd);
+			Process p = Runtime.getRuntime().exec (cmd[2]);
 			p.waitFor();
-			logger.info("send mail cmd:"+cmd);
+			logger.info("send mail cmd:"+cmd[2]);
 		}catch (Exception e){
 			logger.error("send mail fail:"+SmessageText+"。",e);
 		}
@@ -4559,13 +4559,13 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
 			cmd[2]= "/bin/echo \""+SmessageText+"\" | /bin/mailx -s \""+SSubject+"\" -r TWNLD_ALERT "+Sto;
 			
 		
-			Process p = Runtime.getRuntime().exec (cmd);
+			Process p = Runtime.getRuntime().exec (cmd[2]);
 			p.waitFor();
-			logger.info("send mail cmd:"+cmd);
+			logger.info("send mail cmd:"+cmd[2]);
 		}catch (Exception e){
 			logger.error("send mail fail:"+SmessageText+"。",e);
 		}
-      }
+      }*/
 
     public void read_xml(Document doc){
             NodeList nodes;
@@ -4700,9 +4700,16 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
     	
     	try {
     		String res = setOTASMSPostParam("", phone);
+    		
+    		Temprs=s2t.Query("select SMSLOGID.NEXTVAL SMSLOGID from dual");
+    		String logid=null;
+    		while(Temprs.next()){
+    			logid=Temprs.getString("SMSLOGID");
+    		}
+    		
 			logger.debug("send OTA sms result : " + res);
 			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
-					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+phone+"', SYSDATE, 'OTA Message')";
+					+ "VALUES ("+logid+", 'T','"+phone+"', SYSDATE, 'OTA Message')";
 			logger.debug("SMS:" + sSql);
 			
 			//寫入資料庫
@@ -4728,20 +4735,26 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
     	try {
     		VARREALMSG1 = new String(VARREALMSG1.getBytes("BIG5"), "ISO-8859-1");
 			String res = setSMSPostParam(VARREALMSG1, phone);
-			logger.debug("send sms result : " + res);
+			
+			Temprs=s2t.Query("select SMSLOGID.NEXTVAL SMSLOGID from dual");
+    		String logid=null;
+    		while(Temprs.next()){
+    			logid=Temprs.getString("SMSLOGID");
+    		}
+			logger.debug("send "+logid+" sms result : " + res);
+
+			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
+					+ "VALUES ("+logid+", 'T','"+phone+"', SYSDATE, '"+VARREALMSG1+"')";
+			logger.debug("SMS:" + sSql);
+			
+			//寫入資料庫
+			s2t.Inster(sSql);
 			
 			if(res.indexOf("Message Submitted")==-1){
 				throw new Exception("Sendding SMS Error!<br>"
 						+ "cTWNLDMSISDN="+phone+"<br>"
 						+ "VARREALMSG="+VARREALMSG1);
 			}
-			
-			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
-					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+phone+"', SYSDATE, '"+VARREALMSG1+"')";
-			logger.debug("SMS:" + sSql);
-			
-			//寫入資料庫
-			s2t.Inster(sSql);
 		} catch (IOException e) {
 			ErrorHandle("IOException",e);
 		} catch (SQLException e) {
@@ -4798,18 +4811,26 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
     	}
     	
     	
-    	Map<String,String> map = new HashMap<String,String>();
-    	map.put("VARREALMSG", VARREALMSG1);
-    	map.put("TWNLDMSISDN", phone);
-    	map.put("sendtime", sendtime);
-    	//XXX
-    	SMSThread.delaySMS.add(map);
-    	
     	try {
+    		Temprs=s2t.Query("select SMSLOGID.NEXTVAL SMSLOGID from dual");
+    		String logid=null;
+    		while(Temprs.next()){
+    			logid=Temprs.getString("SMSLOGID");
+    		}
+        	
+        	Map<String,String> map = new HashMap<String,String>();
+        	map.put("VARREALMSG", VARREALMSG1);
+        	map.put("TWNLDMSISDN", phone);
+        	map.put("sendtime", sendtime);
+        	map.put("SMSLOGID", logid);
+        	//XXX
+        	SMSThread.delaySMS.add(map);
+    		
+    		
     		VARREALMSG1 = new String(VARREALMSG1.getBytes("BIG5"), "ISO-8859-1");
 
 			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
-					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+phone+"', to_date('"+sendtime+"','yyyyMMddhh24mi'), '"+VARREALMSG1+"')";
+					+ "VALUES ("+logid+", 'T','"+phone+"', to_date('"+sendtime+"','yyyyMMddhh24mi'), '"+VARREALMSG1+"')";
 			logger.debug("SMS:" + sSql);
 			
 			//寫入資料庫
@@ -4834,19 +4855,28 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
     	try {
     		VARREALMSG2 = new String(VARREALMSG2.getBytes("BIG5"), "ISO-8859-1");
 			String res = setSMSPostParam(VARREALMSG2, phone);
-			logger.debug("send sms result : " + res);
+			
+			
+			Temprs=s2t.Query("select SMSLOGID.NEXTVAL SMSLOGID from dual");
+    		String logid=null;
+    		while(Temprs.next()){
+    			logid=Temprs.getString("SMSLOGID");
+    		}
+    		
+			logger.debug("send "+logid+" sms result : " + res);
+			
+			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
+					+ "VALUES ("+logid+", 'T','"+phone+"', SYSDATE, '"+VARREALMSG2+"')";
+			logger.debug("SMS:" + sSql);
+
+			//寫入資料庫
+			s2t.Inster(sSql);
+			
 			if(res.indexOf("Message Submitted")==-1){
 				throw new Exception("Sendding SMS Error!<br>"
 						+ "cTWNLDMSISDN="+phone+"<br>"
 						+ "VARREALMSG="+VARREALMSG2);
 			}
-			
-			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
-					+ "VALUES (SMSLOGID.NEXTVAL, 'T','"+phone+"', SYSDATE, '"+VARREALMSG2+"')";
-			logger.debug("SMS:" + sSql);
-			
-			//寫入資料庫
-			s2t.Inster(sSql);
 		} catch (IOException e) {
 			ErrorHandle("IOException",e);
 		} catch (SQLException e) {
@@ -4888,14 +4918,25 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
     		phone=s2tconf.getProperty("TestPhoneNumber");
     	}
     	
-    	Map<String,String> map = new HashMap<String,String>();
-    	map.put("VARREALMSG", VARREALMSG2);
-    	map.put("TWNLDMSISDN", phone);
-    	map.put("sendtime", sendtime);
-    	//XXX
-    	SMSThread.delaySMS.add(map);
+
+		
     	
     	try {
+    		
+    		Temprs=s2t.Query("select SMSLOGID.NEXTVAL SMSLOGID from dual");
+    		String logid=null;
+    		while(Temprs.next()){
+    			logid=Temprs.getString("SMSLOGID");
+    		}
+        	
+        	Map<String,String> map = new HashMap<String,String>();
+        	map.put("VARREALMSG", VARREALMSG2);
+        	map.put("TWNLDMSISDN", phone);
+        	map.put("sendtime", sendtime);
+        	map.put("SMSLOGID", logid);
+        	//XXX
+        	SMSThread.delaySMS.add(map);
+        	
     		VARREALMSG2 = new String(VARREALMSG2.getBytes("BIG5"), "ISO-8859-1");
 
 			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
@@ -4916,10 +4957,11 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
     	for(Map<String,String> map : sms){
     		String VARREALMSG = map.get("VARREALMSG");
     		String TWNLDMSISDN = map.get("TWNLDMSISDN");
+    		String logid = map.get("SMSLOGID");
         	try {
         		VARREALMSG = new String(VARREALMSG.getBytes("BIG5"), "ISO-8859-1");
     			String res = setSMSPostParam(VARREALMSG, TWNLDMSISDN);
-    			logger.debug("SendSMS   Msg="+VARREALMSG+",result="+res);  
+    			logger.debug("Send SMS "+logid+"  Msg="+VARREALMSG+",result="+res);  
     			if(res.indexOf("Message Submitted")==-1){
     				throw new Exception("Sendding SMS Error!<br>"
     						+ "cTWNLDMSISDN="+TWNLDMSISDN+"<br>"

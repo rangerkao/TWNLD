@@ -52,8 +52,10 @@ public class SMSThread {
 						msg = new String(msg.getBytes("BIG5"), "ISO-8859-1");
 						String phone=m.get("TWNLDMSISDN");
 						String sendtime=m.get("sendtime");
+						String logid = m.get("SMSLOGID");
+						
 						if(now.after(sdf.parse(sendtime))){
-							send_SMS(msg,phone);
+							send_SMS(msg,phone,logid);
 							it.remove();
 						}
 					}
@@ -67,16 +69,14 @@ public class SMSThread {
 			}
 	    }
 	}
-	public void send_SMS(String msg,String phone){
-		logger.debug("send_SMS delay");
-
+	public void send_SMS(String msg,String phone,String logid){
 		if("true".equals(s2tconf.getProperty("TestMod"))){
 			phone=s2tconf.getProperty("TestPhoneNumber");
 		}
 		String res;
 		try {
 			res = setSMSPostParam(msg, phone);
-			logger.debug("send sms result : " + res);
+			logger.debug("delay send "+logid+" sms result : " + res);
 			if(res.indexOf("Message Submitted")==-1){
 				throw new Exception("Sendding SMS Error!<br>"
 						+ "cTWNLDMSISDN="+phone+"<br>"
