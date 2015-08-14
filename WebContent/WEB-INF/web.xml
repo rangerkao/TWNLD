@@ -26,6 +26,10 @@
         <servlet-class>Post</servlet-class>
     </servlet>
     <servlet>
+        <servlet-name>runSMSThread</servlet-name>
+        <servlet-class>runSMSThread</servlet-class>
+    </servlet>
+    <servlet>
         <servlet-name>OldTWNLDrovision</servlet-name>
         <servlet-class>OldTWNLDrovision</servlet-class>
     </servlet>
@@ -60,6 +64,10 @@
     <servlet-mapping>
         <servlet-name>MyTest</servlet-name>
         <url-pattern>/MyTest</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>runSMSThread</servlet-name>
+        <url-pattern>/runSMSThread</url-pattern>
     </servlet-mapping>
     <session-config>
         <session-timeout>

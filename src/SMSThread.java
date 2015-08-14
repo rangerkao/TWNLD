@@ -1,5 +1,6 @@
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -15,7 +16,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -23,27 +23,73 @@ import org.apache.log4j.Logger;
 public class SMSThread {
 
 	public static List<Map<String,String>> delaySMS = new ArrayList<Map<String,String>>();
-	public static Properties s2tconf = new Properties();
-	private static Logger logger;//,sconf
-	static{
-		
-		new SMSThread();
-	}
-	SMSThread(){
-		SMSThread.logger = TWNLDprovision.logger;
-		SMSThread.s2tconf = TWNLDprovision.s2tconf;
-		Thread t = new Thread(new ThreadExample2());
-		t.start();
+	public static Properties s2tconf;
+	public static Logger logger;//
+	public static ProcessS2T.PS2T s2t;
+	//20150723
+    public static Date SMSThreadExcuteTime = new Date();
+    //20150804
+    public static Date SMSThreadWacherTime = new Date();
+    static Boolean Exit = false;
+    public static Thread watcher;
+    public static Thread program;
+	
+    static{
+    	initial();
+    }
+    
+    
+	public static void initial(){
 		System.out.println("Initial SMSThread");
+		s2tconf = TWNLDprovision.s2tconf;
+		logger = TWNLDprovision.logger;
+		s2t = TWNLDprovision.s2t;
+
+		
+		if(program==null)
+		program = new Thread(new SMSThread_Program());
+		if(!program.isAlive())
+		program.start();
+		
+		if(watcher==null)
+			watcher = new Thread(new ThreadWatcher());
+		if(!watcher.isAlive())
+			watcher.start();
+	};
+	
+	static class ThreadWatcher implements Runnable {
+	    public void run() { // implements Runnable run()
+	    	int count =0;
+	    	int countT =0;
+	    	while(true){
+	    		try {
+					Thread.sleep(60*1000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+	    		SMSThreadWacherTime = new Date();
+	    		if(SMSThreadExcuteTime.getTime()-SMSThreadWacherTime.getTime()>=10*60*1000&&count<10){
+	    			Send_AlertMail("Send SMS Thread not Execute 10 minute!");
+	    			count ++;
+	    		}
+	    		System.out.println("Execute ThreadWatcher!");
+	    	}
+	    }
 	}
-	class ThreadExample2 implements Runnable {
+	static class SMSThread_Program implements Runnable {
 	    public void run() { // implements Runnable run()
 	    	SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmm");
-	    	Date now = null;
-			while(true){
+	    	int count =0;
+			while(!Exit){
 				try {
 					Thread.sleep(60*1000);
-					now=new Date();
+					SMSThreadExcuteTime = new Date();
+					if(SMSThreadExcuteTime.getTime()-SMSThreadWacherTime.getTime()>=10*60*1000&&count<10){
+		    			Send_AlertMail("Send watcher Thread not Execute 10 minute!");
+		    			count ++;
+		    		}
+					
 					//直接使用list.remove()會產生error，必須使用iterator，當iterator執行時會同步兩個參數的數值
 					Iterator<Map<String, String>> it = delaySMS.iterator();
 					while(it.hasNext()){
@@ -54,7 +100,7 @@ public class SMSThread {
 						String sendtime=m.get("sendtime");
 						String logid = m.get("SMSLOGID");
 						
-						if(now.after(sdf.parse(sendtime))){
+						if(SMSThreadExcuteTime.after(sdf.parse(sendtime))){
 							send_SMS(msg,phone,logid);
 							it.remove();
 						}
@@ -65,11 +111,13 @@ public class SMSThread {
 					ErrorHandle("ParseException",e);
 				} catch (UnsupportedEncodingException e) {
 					ErrorHandle("UnsupportedEncodingException",e);
+				} catch (Exception e) {
+					ErrorHandle("Exception",e);
 				}
 			}
 	    }
 	}
-	public void send_SMS(String msg,String phone,String logid){
+	public static void send_SMS(String msg,String phone,String logid){
 		if("true".equals(s2tconf.getProperty("TestMod"))){
 			phone=s2tconf.getProperty("TestPhoneNumber");
 		}
@@ -85,7 +133,7 @@ public class SMSThread {
 		} catch (IOException e) {
 			ErrorHandle("IOException",e);
 		} catch (Exception e) {
-			ErrorHandle(e);
+			ErrorHandle("Exception",e);
 		}
 	}
 	public void ErrorHandle(Exception e){
@@ -94,14 +142,28 @@ public class SMSThread {
 		logger.error(e);
 		Send_AlertMail(s.toString());
 	}
-	public void ErrorHandle(String cont,Exception e){
+	public static void ErrorHandle(String cont,Exception e){
 		StringWriter s = new StringWriter();
 		e.printStackTrace(new PrintWriter(s));
 		logger.error(cont,e);
 		Send_AlertMail(cont+"<br>"+s);
 	}
-	public void Send_AlertMail(String content){    	
-		String Sto=s2tconf.getProperty("RDGroup");
+	public static void Send_AlertMail(String content){    	
+		try{
+	        String Smailserver=s2tconf.getProperty("mailserver");
+	        String SFrom=s2tconf.getProperty("From");
+	        String Sto=s2tconf.getProperty("RDGroup");
+	        String SSubject,SmessageText;
+	        SSubject=new Date().toString()+" TWNLD_SMSThread alert !";
+	        SmessageText = content;        
+	          s2t.SendAlertMail(Smailserver, SFrom, Sto, SSubject, SmessageText);
+	           logger.info("Send Mail Content:"+SmessageText);}
+        catch(Exception ex){
+	          logger.error("JAVA Error:"+ex.toString(),ex);
+        }
+	      
+	
+		/*String Sto=s2tconf.getProperty("RDGroup");
 		String SSubject,SmessageText;
 		SSubject="TWNLD_ERROR";
 		SmessageText = content;   
@@ -113,12 +175,12 @@ public class SMSThread {
 
 			Process p = Runtime.getRuntime().exec (cmd);
 			p.waitFor();
-			logger.info("send mail cmd:"+cmd);
+			logger.info("send mail cmd:"+cmd[2]);
 		}catch (Exception e){
 			logger.error("send mail fail:"+SmessageText+"。",e);
-		}
+		}*/
 	}
-	 private String setSMSPostParam(String msg,String phone) throws IOException{
+	 private static String setSMSPostParam(String msg,String phone) throws IOException{
 			//StringBuffer sb=new StringBuffer ();
 
 			String PhoneNumber=phone,Text=msg,charset="big5",InfoCharCounter=null,PID=null,DCS=null;
@@ -138,7 +200,7 @@ public class SMSThread {
 			if(PID==null)PID="";
 			if(DCS==null)DCS="";
 			param=param.replace("{{PhoneNumber}}",PhoneNumber );
-			param=param.replace("{{Text}}",Text.replaceAll("/+", "%2b") );
+			param=param.replace("{{Text}}",Text.replace("+", "%2b"));
 			param=param.replace("{{charset}}",charset );
 			param=param.replace("{{InfoCharCounter}}",InfoCharCounter );
 			param=param.replace("{{PID}}",PID );
@@ -146,7 +208,7 @@ public class SMSThread {
 
 			return HttpPost("http://192.168.10.125:8800/Send%20Text%20Message.htm", param,"");
 		}
-	    public String HttpPost(String url,String param,String charset) throws IOException{
+	    public static String HttpPost(String url,String param,String charset) throws IOException{
 			URL obj = new URL(url);
 			
 			if(charset!=null && !"".equals(charset))
@@ -184,7 +246,6 @@ public class SMSThread {
 	 
 			//print result
 			return(response.toString());
-		}
-	
+		}	
 }
 

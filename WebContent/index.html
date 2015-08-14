@@ -40,6 +40,8 @@ and open the template in the editor.
     	    var req_time = y+m+d+h+mi+s;
     	    document.getElementsByName("Req_DateTime")[0].value = req_time;
     	    document.getElementsByName("Ticket_Number")[0].value = 'Y'+req_time; 
+    	    
+    	    document.getElementsByName("IPP")[0].value = location.hostname+':'+location.port; //orlocation.host
     	});
     </script>
   </head>
@@ -49,22 +51,22 @@ and open the template in the editor.
       
       Req_DateTime：<input type="text" name="Req_DateTime"><br />
       Ticket_Number：<input type="text" name="Ticket_Number" ><br />
-      TWNLD_IMSI：<input type="text" name="TWNLD_IMSI" value="466923301800317"><br />
-      TWNLD_MSISDN：<input type="text" name="TWNLD_MSISDN" value="886975627679"><br />
-      S2T_IMSI：<input type="text" name="S2T_IMSI" value="454120260200190"><br />
-      S2T_MSISDN：<input type="text" name="S2T_MSISDN" value=""><br />
-      Req_Status：<input type="text" name="Req_Status" value="18"><br />
+      TWNLD_IMSI：<input type="text" name="TWNLD_IMSI"><br />
+      TWNLD_MSISDN：<input type="text" name="TWNLD_MSISDN"><br />
+      S2T_IMSI：<input type="text" name="S2T_IMSI"><br />
+      S2T_MSISDN：<input type="text" name="S2T_MSISDN"><br />
+      Req_Status：<input type="text" name="Req_Status"><br />
       <!-- 
       Addon_Service：<input type="text" name="Addon_Service" value="My Addon"><br />
       Addon_Item：<input type="text" name="Addon_Item" value="My Item"><br>
       -->
-      Addon_Code：<input type="text" name="Addon_Code" value="SX001"><br />
-      Addon_Action：<input type="text" name="Addon_Action" value="A"><br />
-      Addon_Code：<input type="text" name="Addon_Code" ><br />
-      Addon_Action：<input type="text" name="Addon_Action" ><br />
-      VLN_Country：<input type="text" name="VLN_Country" value="CHNA"><br />
-      GPRS_Status：<input type="text" name="GPRS_Status" value="0"><br />
-      IP&Port：<input type="text" name="IPP" value="192.168.200.19:8176"><br />
+      Addon_Code：<input type="text" name="Addon_Code"><br />
+      Addon_Action：<input type="text" name="Addon_Action"><br />
+      Addon_Code：<input type="text" name="Addon_Code"><br />
+      Addon_Action：<input type="text" name="Addon_Action"><br />
+      VLN_Country：<input type="text" name="VLN_Country"><br />
+      GPRS_Status：<input type="text" name="GPRS_Status"><br />
+      IP&Port：<input type="text" name="IPP"><br />
       <p align="left"> exp:192.168.2.6:8080<br />
       <input type="submit" value="傳送" />
       </form>
