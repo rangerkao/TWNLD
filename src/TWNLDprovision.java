@@ -1834,8 +1834,9 @@ public class TWNLDprovision extends HttpServlet {
                 			 
                 			   if(!cS2TMSISDN.equals("")) {
                 				   sSql = "";
-                				   sWSFStatus = "V";
-                                   sWSFDStatus = "V";
+                				   //20150915 直接將狀態更改成最終狀態，跳過FileToProvision的處理
+                				   sWSFStatus = "O";
+                                   sWSFDStatus = "I";
                                    
                                    for(Map<String,String> m: cAddonItem){
                                 	   cAddonCode = m.get("AddonCode");
@@ -1913,7 +1914,7 @@ public class TWNLDprovision extends HttpServlet {
 			   //確認是否還有未中止的合約
 			   sSql="SELECT count(1)ab FROM ADDONSERVICE_N A "
 			   		+ "WHERE A.ENDDATE IS NULL and A.SERVICECODE ='"+cAddonCode+"' "
-			   		+ "AND A.S2TIMSI='"+cS2TIMSI+"' AND A.S2TMSISDN='"+cS2TMSISDN+"' "
+			   		+ "AND A.S2TIMSI='"+cS2TIMSI+"' " //AND A.S2TMSISDN='"+cS2TMSISDN+"' " //20150914 mod
 					+ "AND A.MNOIMSI='"+cTWNLDIMSI+"' AND A.MNOMSISDN='"+cTWNLDMSISDN+"' ";
 			   ResultSet rs =s2t.Query(sSql);
 			   logger.debug("select Addon_N Not end:" + sSql);
@@ -1959,18 +1960,19 @@ public class TWNLDprovision extends HttpServlet {
 			       	   logger.debug("Inser into ADDONSERVICE_N:" + sSql);
 			       	   
 				   }else{
-					   Send_AlertMail("Insert AddonService_N error. Still have service.");
+					   Send_AlertMail("Insert AddonService_N error. Still have service. SQL:"+sSql);
 				   }
 
 			   }else if("D".equalsIgnoreCase(cAddonAction)){
 				   if("1".equalsIgnoreCase(count)){
 			       	   sSql="UPDATE ADDONSERVICE_N A SET A.STATUS ='D',A.ENDDATE = SYSDATE "
-			       			+ "WHERE A.ENDDATE IS NULL  AND A.S2TIMSI='"+cS2TIMSI+"' AND A.S2TMSISDN='"+cS2TMSISDN+"' AND A.MNOIMSI='"+cTWNLDIMSI+"' AND A.MNOMSISDN='"+cTWNLDMSISDN+"' ";
+			       			+ "WHERE A.ENDDATE IS NULL  AND A.S2TIMSI='"+cS2TIMSI+"' " //AND A.S2TMSISDN='"+cS2TMSISDN+"' " //20150914 mod 
+			       			+ "AND A.MNOIMSI='"+cTWNLDIMSI+"' AND A.MNOMSISDN='"+cTWNLDMSISDN+"' ";
 			       	   s2t.Update(sSql);
 			       	   logger.debug("Update ADDONSERVICE_N:" + sSql);
 			       	   
 				   }else{
-					   Send_AlertMail("Update AddonService_N error. Have no or more one service.");
+					   Send_AlertMail("Update AddonService_N error. Have no or more one service. SQL:"+sSql);
 				   }
 			   }
 		} catch (Exception e) {
@@ -3427,7 +3429,7 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
                cVLNNUMBER="null";
              sSql="SELECT a.vln as ab FROM vlnnumber a, COUNTRYINITIAL b " +
                      "WHERE a.vplmnid=b.vplmnid "+
-                  " AND vln LIKE '"+cCountryCode+"%' AND a.serviceid = "+
+                  " AND vln LIKE '"+cCountryCode+"%' AND vlntype=1 AND a.serviceid = "+
                   " (SELECT MAX(Serviceid) FROM imsi WHERE homeimsi = '"+cTWNLDIMSI+"')";
              logger.debug("Get_VLNNumber[D]:"+sSql);
              Temprs=s2t.Query(sSql);
@@ -3506,7 +3508,7 @@ public void Find_AvailableS2TMSISDN() throws SQLException, IOException{
                cVLNNUMBER="null";
              sSql="SELECT a.vln as ab FROM vlnnumber a, COUNTRYINITIAL b " +
                      "WHERE a.vplmnid=b.vplmnid "+
-                  " AND vln LIKE '"+cCountryCode+"%' AND a.serviceid = "+
+                  " AND vln LIKE '"+cCountryCode+"%' AND vlntype=1 AND a.serviceid = "+
                   " (SELECT MAX(Serviceid) FROM imsi WHERE homeimsi = '"+cTWNLDIMSI+"')";
              logger.debug("reGet_VLNNumber[D]:"+sSql);
              Temprs=s2t.Query(sSql);
@@ -4386,7 +4388,7 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
     	}
     	
     	try {
-    		String res = setOTASMSPostParam("", phone);
+    		
     		
     		Temprs=s2t.Query("select SMSLOGID.NEXTVAL SMSLOGID from dual");
     		String logid=null;
@@ -4394,10 +4396,13 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
     			logid=Temprs.getString("SMSLOGID");
     		}
     		
-			logger.debug("send OTA sms result : " + res);
+			
 			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
 					+ "VALUES ("+logid+", 'T','"+phone+"', SYSDATE, 'OTA Message')";
 			logger.debug("SMS:" + sSql);
+			
+			String res = setOTASMSPostParam("", phone);
+			logger.debug("send OTA sms result : " + res);
 			
 			//寫入資料庫
 			s2t.Inster(sSql);
