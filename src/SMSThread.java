@@ -101,7 +101,11 @@ public class SMSThread {
 						String logid = m.get("SMSLOGID");
 						
 						if(SMSThreadExcuteTime.after(sdf.parse(sendtime))){
-							send_SMS(msg,phone,logid);
+							if("OTA Message".equalsIgnoreCase(msg)){
+								send_OTASMS(msg,phone,logid);
+							}else{
+								send_SMS(msg,phone,logid);
+							}
 							it.remove();
 						}
 					}
@@ -117,6 +121,56 @@ public class SMSThread {
 			}
 	    }
 	}
+	
+	public static void send_OTASMS(String msg,String phone,String logid){
+		if("true".equals(s2tconf.getProperty("TestMod"))){
+			phone=s2tconf.getProperty("TestPhoneNumber");
+		}
+		String res;
+		try {
+			res = setOTASMSPostParam(msg, phone);
+			logger.debug("OTA send "+logid+" sms result : " + res);
+			if(res.indexOf("Message Submitted")==-1){
+				throw new Exception("Sendding SMS Error!<br>"
+						+ "cTWNLDMSISDN="+phone+"<br>"
+						+ "VARREALMSG="+msg);
+			}
+		} catch (IOException e) {
+			ErrorHandle("IOException",e);
+		} catch (Exception e) {
+			ErrorHandle("Exception",e);
+		}
+	}
+	
+	
+	private static String setOTASMSPostParam(String msg,String phone) throws IOException{
+		String PhoneNumber=phone,Text=msg,charset="big5",InfoCharCounter=null,PID=null,DCS=null;
+		String param =
+				"PhoneNumber=+{{PhoneNumber}}&"
+				+ "UNUSED=on&"
+				+ "UDH=&"
+				+ "Data=B30200F1&"
+				+ "PID=7F&"
+				+ "DCS=F6&"
+				+ "Submit=Submit&"
+				+ "Binary=1";
+		
+		if(PhoneNumber==null)PhoneNumber="";
+		if(Text==null)Text="";
+		//if(charset==null)charset="";
+		if(InfoCharCounter==null)InfoCharCounter="";
+		if(PID==null)PID="";
+		if(DCS==null)DCS="";
+		param=param.replace("{{PhoneNumber}}",PhoneNumber );
+		param=param.replace("{{Text}}",Text.replaceAll("/+", "%2b") );
+		param=param.replace("{{charset}}",charset );
+		param=param.replace("{{InfoCharCounter}}",InfoCharCounter );
+		param=param.replace("{{PID}}",PID );
+		param=param.replace("{{DCS}}",DCS );
+
+		return HttpPost("http://192.168.10.125:8800/Send Binary Message Other.htm",param,"");
+	}
+	
 	public static void send_SMS(String msg,String phone,String logid){
 		if("true".equals(s2tconf.getProperty("TestMod"))){
 			phone=s2tconf.getProperty("TestPhoneNumber");

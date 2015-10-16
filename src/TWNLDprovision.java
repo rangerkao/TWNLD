@@ -551,13 +551,13 @@ public class TWNLDprovision extends HttpServlet {
         	  //20150504 add
         	  String s = "DB Error";
               logger.error(s);
-                 sSql="update PROVLOG set javaerrmsg='"+s.toString()+"' where LOGID="+ sCMHKLOGID;
+                /* sSql="update PROVLOG set javaerrmsg='"+s.toString()+"' where LOGID="+ sCMHKLOGID;
                  s2t.Update(sSql);
-              sErrorSQL+=sSql;
-              Query_PreProcessResult(out,"601");
+              sErrorSQL+=sSql;*/
+              //Query_PreProcessResult(out,"601");
         	  
               //20150504 mod
-        	  /*cRCode="601";
+        	  cRCode="601";
               out.println("<Return_Code>");
               out.println("601");
               out.println("</Return_Code>");
@@ -566,7 +566,8 @@ public class TWNLDprovision extends HttpServlet {
               out.println("</Return_DateTime>");
               desc="DBconnection error";
               sreturnXml=sreturnXml+"<Return_Code>601</Return_Code><Return_DateTime>"+
-                      s2t.Date_Format()+s2t.Date_Format_Time()+"</Return_DateTime>";*/
+                      s2t.Date_Format()+s2t.Date_Format_Time()+"</Return_DateTime>";
+              Send_AlertMail();
           }
       }catch(SQLException ex){
         StringWriter   s   =   new   StringWriter();
@@ -1910,7 +1911,6 @@ public class TWNLDprovision extends HttpServlet {
         
         try {
 			//20150724 新增修改AddonService_N
-			   //XXX
 			   //確認是否還有未中止的合約
 			   sSql="SELECT count(1)ab FROM ADDONSERVICE_N A "
 			   		+ "WHERE A.ENDDATE IS NULL and A.SERVICECODE ='"+cAddonCode+"' "
@@ -2237,10 +2237,10 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
  	  
  	   //20150717 mod
  	   String VARREALMSG="";
- 	   VARREALMSG+="親愛的客戶：您的「環球卡」香港副號%2b"+cS2TMSISDN;
+ 	   VARREALMSG+="親愛的客戶：您的「環球卡」香港副號+"+cS2TMSISDN;
  	   VARREALMSG+="已開通。在您抵達海外時請確認關閉飛航模式並重新開機，副號將顯示在手機上。";
  	   VARREALMSG+="請花 2分鐘觀看環球卡撥號方式說明影片http://goo.gl/sUSCHa。";
- 	   VARREALMSG+="如需諮詢請洽客服%2b886928000107";
+ 	   VARREALMSG+="如需諮詢請洽客服+886928000107";
  	   //VARREALMSG=replaceCSPhone(VARREALMSG);
 
  	   //20141205 add
@@ -2282,31 +2282,33 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     			sMd=sVln.substring(sVln.length()-1,sVln.length());
     			sVln=sVln.substring(y+1,sVln.length()-2);
     			
+    			
+    			
+    			String cV="";
+				
+				if (sVln.equals("CHN")){
+					cV="中國";
+				}else if (sVln.equals("SGP")){
+					cV="新加坡";
+				}else if (sVln.equals("SWE")){
+					cV="瑞典";
+
+					//20141216 add
+				}else if (sVln.equals("THA")){
+					cV="泰國";
+				}else if (sVln.equals("IDN")){
+					cV="印尼";
+				}
+    			
+    			
     			if (sMd.equals("A")) {
     				sSql="update availableVLN set Status='U',lastupdatetime=sysdate where "
     						+ "VLNNUMBER='"+cVLNc+"'";
-    				
     				s2t.Update(sSql);
-    				
-    				String cV="";
-    				
-    				if (sVln.equals("CHN")){
-    					cV="中國";
-    				}else if (sVln.equals("SGP")){
-    					cV="新加坡";
-    				}else if (sVln.equals("SWE")){
-    					cV="瑞典";
-
-    					//20141216 add
-    				}else if (sVln.equals("THA")){
-    					cV="泰國";
-    				}else if (sVln.equals("IDN")){
-    					cV="印尼";
-    				}
     				
     				if(!"".equals(cV)){
     					//20150717 add
-    					VARREALMSG="您申請的「環球卡」"+cV+"副號%2b"+cVLNc+"已開通。";
+    					VARREALMSG="您申請的「環球卡」"+cV+"副號+"+cVLNc+"已開通。";
     					send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
     				}
     				
@@ -2315,6 +2317,12 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     						+ "where VLNNUMBER='"+cVLNc+"'";
     				
     				s2t.Update(sSql);
+    				
+    				if(!"".equals(cV)){
+    					//20150717 add
+    					VARREALMSG="《溫馨提醒》親愛的環球卡用戶，您的"+cV+"副號+"+cVLNc+"已依您選擇完成退租。日後如有需要，歡迎隨時加選。感謝您！";
+    					send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
+    				}
     			}
     		}
     	}
@@ -2350,7 +2358,7 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     		//20150717 add
     		VARREALMSG="您已開通環球卡數據服務，除中國、香港、澳門、日本、韓國、印尼有每日收費上限外，"
     				+ "其餘國家均按實際用量收費，不提供吃到飽方案，請謹慎使用。另有香港/中國華人上網包提供月租上網吃到飽服務，"
-    				+ "歡迎加選，請洽客服%2b886-928-000-107。";
+    				+ "歡迎加選，請洽客服+886-928-000-107。";
     		
     		//send_SMS(VARREALMSG);
     		send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
@@ -2368,11 +2376,22 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     		
     		//send_SMS1(VARREALMSG);
 	    	send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));    	
+    	
+	    	//XXX
+	    	String charge = checkDataStatus();
+	    	if(!"0".equals(charge)){
+	    		Send_AlertMail("Please check user charge status!"+"\n<br>"
+	    						+ "S2t IMSI : "+cS2TIMSI+"\n<br>"
+	    						+ "S2t Msisdn : "+cS2TMSISDN+"\n<br>"
+								+ "CHT IMSI : "+cTWNLDIMSI+"\n<br>"
+								+ "CHT Msisdn : "+cTWNLDMSISDN+"\n<br>"
+								+ "Charge : "+charge);
+	    	}
     	}
     }
     
     public void SMS18(){
-    	String VARREALMSG="",PACKAGE="",PAYMENT="";
+    	String VARREALMSG="",PACKAGE="";//,PAYMENT="";
     	//20150518 modify sms for multi-actionItem
     	for(Map<String,String> m: cAddonItem){
     	   VARREALMSG = "";
@@ -2382,11 +2401,11 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
      	  if(cAddonCode.equals("SX001")) {
 	          //PACKAGE = "香港上網包";
      		  PACKAGE = "香港華人上網包";
-     		  PAYMENT = "NTD599";
+     		  //PAYMENT = "NTD599";
 	       } else if(cAddonCode.equals("SX002")) {
 		      //PACKAGE = "香港+大陸上網包";
-	    	  PACKAGE = "香港%2b大陸華人上網包";
-		      PAYMENT = "NTD999";
+	    	  PACKAGE = "香港+大陸華人上網包";
+		      //PAYMENT = "NTD999";
 	       }
 
 	       if(cAddonAction.equals("A")) {
@@ -2404,7 +2423,12 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     }
     
     public void SMS99(){
-    	send_OTA_SMS();
+    	//20151015 add
+    	
+    	String VARREALMSG="《溫馨提醒》您的環球卡服務暨香港副號+"+cS2TMSISDN+"已退租。日後如有需要，歡迎隨時申請。如非您本人申請，請速洽中華電信更正。感謝！";
+		send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
+		
+    	send_OTA_SMS(new SimpleDateFormat("yyyyMMddHHmm").format(new Date()));	
     }
 
     public void S501(PrintWriter outA,String sRCode){
@@ -4201,6 +4225,49 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
       catch(Exception ex){
         logger.error("JAVA Error:"+ex.toString());}
     }
+    //20151002 add
+    //XXX
+    public String checkDataStatus(){
+    	String result = "0";
+    	SimpleDateFormat sdf = new SimpleDateFormat("yyyyMM");
+    	
+    	//get service id
+    	Temprs = null;
+        try {
+			sSql="SELECT B.IMSI,A.SERVICECODE,A.PRICEPLANID,A.SUBSIDIARYID,A.SERVICEID "
+					+ "FROM SERVICE A,IMSI B,PARAMETERVALUE C "
+					+ "WHERE A.SERVICEID=B.SERVICEID AND A.SERVICECODE IS NOT NULL "
+					+ "AND B.SERVICEID=C.SERVICEID(+) AND C.PARAMETERVALUEID(+)=3748 "
+					+ "AND B.IMSI='"+cS2TIMSI+"'";
+			
+			Temprs = s2t.Query(sSql);
+			logger.info("Query Service id :"+sSql);
+			String serviceId = null;
+			while(Temprs.next()){
+				serviceId = Temprs.getString("SERVICEID");
+			}
+			
+			Temprs = null;
+			
+			if(serviceId!=null){
+				sSql = "SELECT Case when A.CHARGE>5000 then  A.CHARGE  else 0 end AB "
+						+ "FROM HUR_CURRENT A "
+						+ "WHERE A.MONTH = '"+sdf.format(new Date())+"' AND A.SERVICEID = '"+serviceId+"' ";
+				
+				 Temprs = s2t.Query(sSql);
+				 logger.info("Query user charge:"+sSql);
+
+			     while(Temprs.next()){
+			     	result = Temprs.getString("AB");
+			     }
+			    
+			}
+		} catch (SQLException e) {
+			ErrorHandle("SQLException for sql"+sSql,e);
+		}
+    	
+    	return result;
+    }
     
     public void Send_AlertMail(String content){
         try{
@@ -4403,6 +4470,48 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
 			
 			String res = setOTASMSPostParam("", phone);
 			logger.debug("send OTA sms result : " + res);
+			
+			//寫入資料庫
+			s2t.Inster(sSql);
+    	} catch (IOException e) {
+			ErrorHandle("IOException for sql"+sSql,e);
+		} catch (SQLException e) {
+			ErrorHandle("SQLException for sql:"+sSql,e);
+		}
+    }
+    public void send_OTA_SMS(String sendtime){
+    	logger.debug("send_OTA_SMS");
+    	
+    	//20150626 add
+    	String phone=cTWNLDMSISDN;
+    	if("true".equals(s2tconf.getProperty("TestMod"))){
+    		phone=s2tconf.getProperty("TestPhoneNumber");
+    	}
+    	
+    	try {
+    	
+			String VARREALMSG1 = "OTA Message";
+			
+			Temprs=s2t.Query("select SMSLOGID.NEXTVAL SMSLOGID from dual");
+    		String logid=null;
+    		while(Temprs.next()){
+    			logid=Temprs.getString("SMSLOGID");
+    		}
+        	
+        	Map<String,String> map = new HashMap<String,String>();
+        	map.put("VARREALMSG", VARREALMSG1);
+        	map.put("TWNLDMSISDN", phone);
+        	map.put("sendtime", sendtime);
+        	map.put("SMSLOGID", logid);
+        	//XXX
+        	SMSThread.delaySMS.add(map);
+    		
+    		
+    		VARREALMSG1 = new String(VARREALMSG1.getBytes("BIG5"), "ISO-8859-1");
+
+			sSql="INSERT INTO S2T_BL_SMS_LOG (SMSID, TYPE, PHONENUMBER, CREATETIME, CONTENT) "
+					+ "VALUES ("+logid+", 'T','"+phone+"', to_date('"+sendtime+"','yyyyMMddhh24mi'), '"+VARREALMSG1+"')";
+			logger.debug("SMS:" + sSql);
 			
 			//寫入資料庫
 			s2t.Inster(sSql);
