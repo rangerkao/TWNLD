@@ -119,6 +119,9 @@ public class TWNLDprovision extends HttpServlet {
     String sErrorSQL="",iErrorMsg="";    
     
     int SMS_Delay_Time = 5*60*1000;
+    
+    //20151127 add
+    String actionD = null,actionA = null;
 
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
@@ -1838,7 +1841,8 @@ public class TWNLDprovision extends HttpServlet {
                 				   //20150915 直接將狀態更改成最終狀態，跳過FileToProvision的處理
                 				   sWSFStatus = "O";
                                    sWSFDStatus = "I";
-                                   
+                                   actionD = null;
+                                   actionA = null;
                                    for(Map<String,String> m: cAddonItem){
                                 	   cAddonCode = m.get("AddonCode");
                                 	   cAddonAction = m.get("AddonAction");
@@ -1851,9 +1855,8 @@ public class TWNLDprovision extends HttpServlet {
                       
                                        //20150812 add
                                        action_18();
-                                       
                                    }
-                				   Query_PreProcessResult(out18, "000");
+                                   Query_PreProcessResult(out18, "000");
                 				   
                                   // Query_AddonStatus();	   
                                    
@@ -1899,6 +1902,7 @@ public class TWNLDprovision extends HttpServlet {
         	 Query_PreProcessResult(out18,"111");
          }
     }
+    
     public void action_18() throws SQLException{
     	sSql="INSERT INTO ADDONSERVICE (REQUESTDATETIME," +
                 "MNOSUBCODE,MNOIMSI,MNOMSISDN,S2TIMSI,S2TMSISDN," + 
@@ -1908,6 +1912,8 @@ public class TWNLDprovision extends HttpServlet {
      		   + "',null,null)";
         s2t.Inster(sSql);
         logger.debug("Adding Addon_Service:" + sSql);
+        
+        
         
         try {
 			//20150724 新增修改AddonService_N
@@ -1956,6 +1962,7 @@ public class TWNLDprovision extends HttpServlet {
 			       	   
 			       	   sSql="INSERT INTO ADDONSERVICE_N(SEQ,MNOIMSI,MNOMSISDN,S2TIMSI,S2TMSISDN,SERVICECODE,STATUS,STARTDATE,SERVICEID) "
 			       	   		+ "VALUES("+seqId+",'"+cTWNLDIMSI+"','"+cTWNLDMSISDN+"','"+cS2TIMSI+"','"+cS2TMSISDN+"','"+cAddonCode+"','A',SYSDATE,"+serviceId+")";
+
 			       	   s2t.Inster(sSql);
 			       	   logger.debug("Inser into ADDONSERVICE_N:" + sSql);
 			       	   
@@ -1966,8 +1973,11 @@ public class TWNLDprovision extends HttpServlet {
 			   }else if("D".equalsIgnoreCase(cAddonAction)){
 				   if("1".equalsIgnoreCase(count)){
 			       	   sSql="UPDATE ADDONSERVICE_N A SET A.STATUS ='D',A.ENDDATE = SYSDATE "
-			       			+ "WHERE A.ENDDATE IS NULL  AND A.S2TIMSI='"+cS2TIMSI+"' " //AND A.S2TMSISDN='"+cS2TMSISDN+"' " //20150914 mod 
-			       			+ "AND A.MNOIMSI='"+cTWNLDIMSI+"' AND A.MNOMSISDN='"+cTWNLDMSISDN+"' ";
+			       			 //20151127 mod
+			       			+ "WHERE A.ENDDATE IS NULL and A.SERVICECODE ='"+cAddonCode+"' "
+					   		+ "AND A.S2TIMSI='"+cS2TIMSI+"' " //AND A.S2TMSISDN='"+cS2TMSISDN+"' " //20150914 mod
+							+ "AND A.MNOIMSI='"+cTWNLDIMSI+"' AND A.MNOMSISDN='"+cTWNLDMSISDN+"' ";
+			       	   
 			       	   s2t.Update(sSql);
 			       	   logger.debug("Update ADDONSERVICE_N:" + sSql);
 			       	   
@@ -1975,6 +1985,9 @@ public class TWNLDprovision extends HttpServlet {
 					   Send_AlertMail("Update AddonService_N error. Have no or more one service. SQL:"+sSql);
 				   }
 			   }
+			   
+			   
+			   
 		} catch (Exception e) {
 			ErrorHandle("AddonService_N error:"+sSql,e);
 		}
