@@ -396,161 +396,175 @@ public class TWNLDprovision extends HttpServlet {
           ba = Connect_DB();
           logger.info("Connect Database:" + ba);
         
-          if((ba == true) && (!cReqStatus.equals(""))) {
-             if(!dReqDate.equals("")){
-                Sdate = dReqDate.substring(4,6)+"/"+dReqDate.substring(6,8)+"/"+dReqDate.substring(0,4)+" "+dReqDate.substring(8,10)+":"+dReqDate.substring(10,12)+":"+dReqDate.substring(12,14);
-                Write_ProvisionLog();
-                vln.removeAllElements();
-                TempRtA = null;
-                
-                sSql = "Select subscr_id as ab,nvl(result_flag,'0') as cd from S2T_TB_TYPB_WO_SYNC_FILE_DTL"+
-                " where subscr_id ='"+cTicketNumber+"'";
-                
-                logger.debug("Check TicketNumber:"+sSql);
-                TempRtA = s2t.Query(sSql);
-              
-                while(TempRtA.next()) {
-                   cSubscrId = TempRtA.getString("ab");
-                   Old_result_flag=TempRtA.getString("cd"); 
-                }
-                
-                //20141211 add
-                /*if("18".equals(cReqStatus) && "".equals(cAddonCode)&& "".equals(cAddonAction)){
-              	  	logger.debug("AddonCode or AddonAction is ineffective!");
-              	  	Query_PreProcessResult(out,"000");
-           	       return;
-           		 	
-                }*/
-                //20150506 mod
-                if("18".equals(cReqStatus) && cAddonItem.size()==0){
-              	  	logger.debug("AddonCode or AddonAction is ineffective!");
-              	  	Query_PreProcessResult(out,"000");
-           	       return;
-           		 	
-                }
-                
-           
-                if(!cSubscrId.equals(cTicketNumber)) {
-              	  switch(Integer.parseInt(cReqStatus)) {
-                      case 0:
-                         ReqStatus_00(out);
-                         break;
-                       case 1:
-                          ReqStatus_01(out);
-                          break;
-                       case 2:
-                          ReqStatus_02(out);
-                          break;
-                       case 3:
-                          ReqStatus_03(out);
-                          break;
-                       case 5:
-                          ReqStatus_05(out);
-                          break;
-                       case 7:
-                          ReqStatus_07(out);
-                          break; 
-                       case 17:
-                          ReqStatus_17(out);
-                          break;
-                       case 18:
-                    	   ReqStatus_18(out);	
-                    	   break;
-                       case 19:
-                          ReqStatus_19(out);
-                          break;//}
-                       case 97:
-                      	 //else if (cReqStatus.equals("97")){
-                         {
-                            sWSFStatus = "O";
-                            Process_SyncFile(sWSFStatus);
-                            Query_ByPartnerIMSI(out);
-                         }
-                          break; //}
-                       case 98:
-                      	 // else if (cReqStatus.equals("98")){
-                         {
-                            sWSFStatus = "O";
-                            Process_SyncFile(sWSFStatus);
-                            Query_ByPartnerMSISDN(out);
-                         }
-                          break;//}
-                       case 99:
-                          ReqStatus_99(out);
-                          break;
-                          // else {iError=1;}
-                       default:  
-                      	 iError=1;
-                      	 
-                      	 if(!"".equals(iErrorMsg))
-                      		 iErrorMsg+=",";
-                      	 iErrorMsg+="ReqStatus is incorrect!";
-                      	 
-                      	 break;
-                    }
-              	  //}else {Query_PreProcessResult(out,"402");}
-				   logger.info("iError:" + iError+", cRCode:" + cRCode);
-				   
-				   if((iError == 0) && (cRCode.equals("000"))) {
-					  RCode_000(out);    
-				   }
-				   //501 S
-				   if ((iError!=0)&&(!cRCode.equals("000"))){
-					   S501(out,cRCode);
-				   } //501 E
-                  } else if (cSubscrId.equals(cTicketNumber) && !Old_result_flag.equals("000")){
-                  	switch(Integer.parseInt(cReqStatus)){                	
-	                case 0:
-	                  ReRunStatus_00(out);
-	                  break;
-	                case 1:
-	                  ReRunStatus_01(out);
-	                  break;
-	                case 2:
-	                  ReRunStatus_02(out);
-	                  break;
-	                case 3:
-	                  ReRunStatus_03(out);
-	                  break;
-	                case 5:
-	                  ReRunStatus_05(out);
-	                  break;
-	                case 7:
-	                  ReRunStatus_07(out);
-	                  break;
-	                case 17:
-	                  ReRunStatus_17(out);
-	                  break;
-	                case 18:
-	                	ReRunStatus_18(out);
-	                	break;
-	                case 99:
-	                	
-		                ReRunStatus_99(out);
-		                break;
-	                default:
-						iError = 1;
+			if ((ba == true) && (!cReqStatus.equals(""))) {
+				if (!dReqDate.equals("")) {
+					Sdate = dReqDate.substring(4, 6) + "/"
+							+ dReqDate.substring(6, 8) + "/"
+							+ dReqDate.substring(0, 4) + " "
+							+ dReqDate.substring(8, 10) + ":"
+							+ dReqDate.substring(10, 12) + ":"
+							+ dReqDate.substring(12, 14);
+					Write_ProvisionLog();
+					vln.removeAllElements();
+					TempRtA = null;
 
-						if (!"".equals(iErrorMsg))
-							iErrorMsg += ",";
-						iErrorMsg += "ReqStatus is incorrect!";
-                  	}
+					sSql = "Select subscr_id as ab,nvl(result_flag,'0') as cd from S2T_TB_TYPB_WO_SYNC_FILE_DTL"
+							+ " where subscr_id ='" + cTicketNumber + "'";
 
-		              logger.info("iError:"+iError+",cRCode:"+cRCode);
-		              if ((iError==0)&&(cRCode.equals("000"))){
-		                 RCode_000(out);
-		               }
-		              //501 S
-		              if ((iError!=0)&&(!cRCode.equals("000"))){
-		                S501(out,cRCode);
-		              } //501 E
-                  } else {
-                  	Query_PreProcessResult(out,"107");
-              	}
-             } else{ 
-          	   Query_PreProcessResult(out,"110");
-      	   }
-          } else {
+					logger.debug("Check TicketNumber:" + sSql);
+					TempRtA = s2t.Query(sSql);
+
+					while (TempRtA.next()) {
+						cSubscrId = TempRtA.getString("ab");
+						Old_result_flag = TempRtA.getString("cd");
+					}
+
+					// 20141211 add
+					/*
+					 * if("18".equals(cReqStatus) && "".equals(cAddonCode)&&
+					 * "".equals(cAddonAction)){
+					 * logger.debug("AddonCode or AddonAction is ineffective!");
+					 * Query_PreProcessResult(out,"000"); return;
+					 * 
+					 * }
+					 */
+					// 20150506 mod
+					if ("18".equals(cReqStatus) && cAddonItem.size() == 0) {
+						logger.debug("AddonCode or AddonAction is ineffective!");
+						Query_PreProcessResult(out, "000");
+						return;
+
+					}
+
+					if (!cSubscrId.equals(cTicketNumber)) {
+						switch (Integer.parseInt(cReqStatus)) {
+						case 0:
+							ReqStatus_00(out);
+							break;
+						case 1:
+							ReqStatus_01(out);
+							break;
+						case 2:
+							ReqStatus_02(out);
+							break;
+						case 3:
+							ReqStatus_03(out);
+							break;
+						case 5:
+							ReqStatus_05(out);
+							break;
+						case 7:
+							ReqStatus_07(out);
+							break;
+						case 17:
+							ReqStatus_17(out);
+							break;
+						case 18:
+							ReqStatus_18(out);
+							break;
+						case 19:
+							ReqStatus_19(out);
+							break;// }
+						case 97:
+						// else if (cReqStatus.equals("97")){
+						{
+							sWSFStatus = "O";
+							Process_SyncFile(sWSFStatus);
+							Query_ByPartnerIMSI(out);
+						}
+							break; // }
+						case 98:
+						// else if (cReqStatus.equals("98")){
+						{
+							sWSFStatus = "O";
+							Process_SyncFile(sWSFStatus);
+							Query_ByPartnerMSISDN(out);
+						}
+							break;// }
+						case 99:
+							ReqStatus_99(out);
+							break;
+						// else {iError=1;}
+						default:
+							iError = 1;
+
+							if (!"".equals(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "ReqStatus is incorrect!";
+
+							break;
+						}
+						// }else {Query_PreProcessResult(out,"402");}
+						logger.info("iError:" + iError + ", cRCode:" + cRCode);
+
+						if ((iError == 0) && (cRCode.equals("000"))) {
+							RCode_000(out);
+						}
+						// 501 S
+						if ((iError != 0) && (!cRCode.equals("000"))) {
+							S501(out, cRCode);
+						} // 501 E
+						// 20151225
+						/*if ("501".equals(cRCode))
+							RCode_000sms();*/
+					} else if (cSubscrId.equals(cTicketNumber)
+							&& !Old_result_flag.equals("000")) {
+						switch (Integer.parseInt(cReqStatus)) {
+						case 0:
+							ReRunStatus_00(out);
+							break;
+						case 1:
+							ReRunStatus_01(out);
+							break;
+						case 2:
+							ReRunStatus_02(out);
+							break;
+						case 3:
+							ReRunStatus_03(out);
+							break;
+						case 5:
+							ReRunStatus_05(out);
+							break;
+						case 7:
+							ReRunStatus_07(out);
+							break;
+						case 17:
+							ReRunStatus_17(out);
+							break;
+						case 18:
+							ReRunStatus_18(out);
+							break;
+						case 99:
+
+							ReRunStatus_99(out);
+							break;
+						default:
+							iError = 1;
+
+							if (!"".equals(iErrorMsg))
+								iErrorMsg += ",";
+							iErrorMsg += "ReqStatus is incorrect!";
+						}
+
+						logger.info("iError:" + iError + ",cRCode:" + cRCode);
+						if ((iError == 0) && (cRCode.equals("000"))) {
+							RCode_000(out);
+						}
+						// 501 S
+						if ((iError != 0) && (!cRCode.equals("000"))) {
+							S501(out, cRCode);
+						} // 501 E
+
+						// 20151225 ADD
+						/*if ("501".equals(cRCode))
+							RCode_000sms();*/
+					} else {
+						Query_PreProcessResult(out, "107");
+					}
+				} else {
+					Query_PreProcessResult(out, "110");
+				}
+			} else {
         	  //20150504 add
         	  String s = "DB Error";
               logger.error(s);
@@ -2343,48 +2357,113 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
                       }else{Query_PreProcessResult(out99,"111");}
     }
 
-    public void RCode_000(PrintWriter outA) throws ClassNotFoundException, IOException, Exception{
-    	
-    	if(cReqStatus.equals("00")) {
-    		SMS00(outA);
-    	}else if (cReqStatus.equals("05")) {
-        	sSql="update availablemsisdn set partnermsisdn='"+cTWNLDMSISDN+
-        		"',lastupdatetime=sysdate where partnermsisdn='"+cOldTWNLDMSISDN+"'";
-        	
-        	logger.debug("ReqStatus[05]:"+sSql);
-        	s2t.Update(sSql);
-        }else if (cReqStatus.equals("07")) {
-        	SMS07(outA);
-        }else if (cReqStatus.equals("17")){
-        	SMS17();
-        }else if(cReqStatus.equals("18")) {
-	    	SMS18();
-	    }else if (cReqStatus.equals("99")){
-    		sSql="update availableVLN set Status='Z',lastupdatetime=sysdate, "
-    				+ "s2tmsisdn='' where s2tmsisdn='"+cS2TMSISDN+"'";
-    		logger.info("ReqStatus[99-VLN]:"+sSql);
-    		
-    		s2t.Update(sSql);
-    		
-            sSql="update availablemsisdn set Status='Z',lastupdatetime="+
-                    "sysdate,partnermsisdn=''"+
-             " where s2tmsisdn='"+cS2TMSISDN+"'";
-            
-            logger.info("ReqStatus[99-VLN]:"+sSql);
-            
-            s2t.Update(sSql);
-          //20150625 add
-            SMS99();
-        }
-    }
-    public void SMS00(PrintWriter outA) throws SQLException{
+	public void RCode_000(PrintWriter outA) throws ClassNotFoundException,
+			IOException, Exception {
 
- 	   outA.println("<GPRS_Status>");
- 	   outA.println(cGPRS);
- 	   outA.println("</GPRS_Status>");
- 	  sreturnXml=sreturnXml+"<GPRS_Status>"+cGPRS+"</GPRS_Status><VLN>";
- 	  
- 	  
+		if (cReqStatus.equals("00")) {
+			outA.println("<GPRS_Status>");
+			outA.println(cGPRS);
+			outA.println("</GPRS_Status>");
+			sreturnXml = sreturnXml + "<GPRS_Status>" + cGPRS
+					+ "</GPRS_Status><VLN>";
+
+			sSql = "update availableMSISDN set status='U',lastupdatetime=sysdate,"
+					+ "partnermsisdn='"
+					+ cTWNLDMSISDN
+					+ "' Where mnosubcode='"
+					+ sMNOSubCode + "' And " + "s2tmsisdn='" + cS2TMSISDN + "'";
+
+			logger.debug("ReqStatus[00-MSISDN]:" + sSql);
+			s2t.Update(sSql);
+			
+			SMS00();
+		} else if (cReqStatus.equals("05")) {
+			sSql = "update availablemsisdn set partnermsisdn='" + cTWNLDMSISDN
+					+ "',lastupdatetime=sysdate where partnermsisdn='"
+					+ cOldTWNLDMSISDN + "'";
+
+			logger.debug("ReqStatus[05]:" + sSql);
+			s2t.Update(sSql);
+		} else if (cReqStatus.equals("07")) {
+			SMS07();
+			
+			TempRt=null;
+	    	
+	        sSql="SELECT b.countryinit||a.vln as ab FROM vlnnumber a, " +
+	                "COUNTRYINITIAL b WHERE a.vplmnid=b.vplmnid "
+	                + "AND a.serviceid = (SELECT MAX(Serviceid) FROM imsi WHERE homeimsi = '"+cTWNLDIMSI+"')";
+	        
+	        TempRt=s2t.Query(sSql);
+	        
+	        while (TempRt.next()){
+	        	sVln=TempRt.getString("ab");
+	        	sAllVln=sAllVln+sVln+",";
+	        }
+	        
+	        if (sAllVln.length()>2){
+	        	sAllVln=sAllVln.substring(0, sAllVln.length()-1);
+	        }else {
+	        	sAllVln="";
+	        }
+	        
+	        outA.println("<VLN>");
+	        outA.println(sAllVln);
+	        outA.println("</VLN>");
+	        sreturnXml=sreturnXml+"<VLN>"+sAllVln+"</VLN>";
+	        
+		} else if (cReqStatus.equals("17")) {
+			SMS17();
+			//XXX
+	    	String charge = checkDataStatus();
+	    	if(!"0".equals(charge)){
+	    		Send_AlertMail("Please check user charge status!"+"\n<br>"
+	    						+ "S2t IMSI : "+cS2TIMSI+"\n<br>"
+	    						+ "S2t Msisdn : "+cS2TMSISDN+"\n<br>"
+								+ "CHT IMSI : "+cTWNLDIMSI+"\n<br>"
+								+ "CHT Msisdn : "+cTWNLDMSISDN+"\n<br>"
+								+ "Charge : "+charge);
+	    	}
+		} else if (cReqStatus.equals("18")) {
+			SMS18();
+		} else if (cReqStatus.equals("99")) {
+			sSql = "update availableVLN set Status='Z',lastupdatetime=sysdate, "
+					+ "s2tmsisdn='' where s2tmsisdn='" + cS2TMSISDN + "'";
+			logger.info("ReqStatus[99-VLN]:" + sSql);
+
+			s2t.Update(sSql);
+
+			sSql = "update availablemsisdn set Status='Z',lastupdatetime="
+					+ "sysdate,partnermsisdn=''" + " where s2tmsisdn='"
+					+ cS2TMSISDN + "'";
+
+			logger.info("ReqStatus[99-VLN]:" + sSql);
+
+			s2t.Update(sSql);
+			// 20150625 add
+			SMS99();
+		}
+	}
+
+	//20151225 ADD
+	public void RCode_000sms() throws ClassNotFoundException,IOException, Exception {
+
+		if (cReqStatus.equals("00")) {
+			SMS00();
+		} else if (cReqStatus.equals("05")) {
+
+		} else if (cReqStatus.equals("07")) {
+			SMS07();
+		} else if (cReqStatus.equals("17")) {
+			SMS17();
+			
+		} else if (cReqStatus.equals("18")) {
+			SMS18();
+		} else if (cReqStatus.equals("99")) {
+			SMS99();
+		}
+	}
+    public void SMS00() throws SQLException{
+
  	   //20150717 mod
  	   String VARREALMSG="";
  	   VARREALMSG+="親愛的客戶：您的「環球卡」香港副號+"+cS2TMSISDN;
@@ -2405,19 +2484,14 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
  	   
  	   send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));
  	   
- 	  sSql="update availableMSISDN set status='U',lastupdatetime=sysdate,"+
-              "partnermsisdn='"+cTWNLDMSISDN+"' Where mnosubcode='"+sMNOSubCode+"' And "+
-              "s2tmsisdn='"+cS2TMSISDN+"'" ;
-    	   
-	   logger.debug("ReqStatus[00-MSISDN]:"+sSql);
-	   s2t.Update(sSql);
+ 	  
  	   
  	   
- 	   SMS07(outA);
+ 	   SMS07();
  	   
  	   SMS17();
     }
-    public void SMS07(PrintWriter outA) throws SQLException{
+    public void SMS07() throws SQLException{
     	String sMd,VARREALMSG;
     	
     	if (vln.size()>0){
@@ -2476,30 +2550,6 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     			}
     		}
     	}
-
-    	TempRt=null;
-    	
-        sSql="SELECT b.countryinit||a.vln as ab FROM vlnnumber a, " +
-                "COUNTRYINITIAL b WHERE a.vplmnid=b.vplmnid "
-                + "AND a.serviceid = (SELECT MAX(Serviceid) FROM imsi WHERE homeimsi = '"+cTWNLDIMSI+"')";
-        
-        TempRt=s2t.Query(sSql);
-        
-        while (TempRt.next()){
-        	sVln=TempRt.getString("ab");
-        	sAllVln=sAllVln+sVln+",";
-        }
-        
-        if (sAllVln.length()>2){
-        	sAllVln=sAllVln.substring(0, sAllVln.length()-1);
-        }else {
-        	sAllVln="";
-        }
-        
-        outA.println("<VLN>");
-        outA.println(sAllVln);
-        outA.println("</VLN>");
-        sreturnXml=sreturnXml+"<VLN>"+sAllVln+"</VLN>";
     }
     
     public void SMS17(){
@@ -2526,17 +2576,6 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     		
     		//send_SMS1(VARREALMSG);
 	    	send_SMS(VARREALMSG,new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date().getTime()+SMS_Delay_Time)));    	
-    	
-	    	//XXX
-	    	String charge = checkDataStatus();
-	    	if(!"0".equals(charge)){
-	    		Send_AlertMail("Please check user charge status!"+"\n<br>"
-	    						+ "S2t IMSI : "+cS2TIMSI+"\n<br>"
-	    						+ "S2t Msisdn : "+cS2TMSISDN+"\n<br>"
-								+ "CHT IMSI : "+cTWNLDIMSI+"\n<br>"
-								+ "CHT Msisdn : "+cTWNLDMSISDN+"\n<br>"
-								+ "Charge : "+charge);
-	    	}
     	}
     }
     
@@ -2581,46 +2620,48 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
     	send_OTA_SMS(new SimpleDateFormat("yyyyMMddHHmm").format(new Date()));	
     }
 
-    public void S501(PrintWriter outA,String sRCode){
-        logger.debug("sRCode:"+sRCode);
-        if ((!sRCode.equals("500"))||(!sRCode.equals("501"))){
+	public void S501(PrintWriter outA, String sRCode) {
+		logger.debug("sRCode:" + sRCode);
+		if ((!sRCode.equals("500")) || (!sRCode.equals("501"))) {
 			try {
-			    sWSFStatus = "O";
-			sWSFDStatus = "I";
-			    Process_SyncFile(sWSFStatus);
-			    Process_SyncFileDtl(sWSFDStatus);
+				sWSFStatus = "O";
+				sWSFDStatus = "I";
+				Process_SyncFile(sWSFStatus);
+				Process_SyncFileDtl(sWSFDStatus);
 			} catch (SQLException ex) {
-			    sErrorSQL+=sSql;
-			    ErrorHandle(ex);
+				sErrorSQL += sSql;
+				ErrorHandle(ex);
 			} catch (Exception ex) {
 				ErrorHandle(ex);
 			}
-        }
-          if (cReqStatus.equals("00")) {
-         outA.println("<GPRS_Status>");
-         outA.println(cGPRS);
-         outA.println("</GPRS_Status>");
-        outA.println("<VLN>");
-        outA.println("</VLN>");
-        sreturnXml=sreturnXml+"<GPRS_Status>"+cGPRS+"</GPRS_Status><VLN></VLN>";
-        }
-        if ((cReqStatus.equals("97"))||(cReqStatus.equals("98"))) {
-         outA.println("<GPRS_Status>");
-         outA.println(cGPRS);
-         outA.println("</GPRS_Status>");
-        outA.println("<VLN>");
-        outA.println("</VLN>");
-        outA.println("<Addon_Service>");
-        outA.println("</Addon_Service>");
-        sreturnXml=sreturnXml+"<GPRS_Status>"+cGPRS+"</GPRS_Status><VLN></VLN>"+
-                "<Addon_Service></Addon_Service>";
-        }
-        if (cReqStatus.equals("07")) {
-        outA.println("<VLN>");
-        outA.println("</VLN>");
-         sreturnXml=sreturnXml+"<VLN></VLN>";
-        }
-    }
+		}
+		if (cReqStatus.equals("00")) {
+			outA.println("<GPRS_Status>");
+			outA.println(cGPRS);
+			outA.println("</GPRS_Status>");
+			outA.println("<VLN>");
+			outA.println("</VLN>");
+			sreturnXml = sreturnXml + "<GPRS_Status>" + cGPRS
+					+ "</GPRS_Status><VLN></VLN>";
+		}
+		if ((cReqStatus.equals("97")) || (cReqStatus.equals("98"))) {
+			outA.println("<GPRS_Status>");
+			outA.println(cGPRS);
+			outA.println("</GPRS_Status>");
+			outA.println("<VLN>");
+			outA.println("</VLN>");
+			outA.println("<Addon_Service>");
+			outA.println("</Addon_Service>");
+			sreturnXml = sreturnXml + "<GPRS_Status>" + cGPRS
+					+ "</GPRS_Status><VLN></VLN>"
+					+ "<Addon_Service></Addon_Service>";
+		}
+		if (cReqStatus.equals("07")) {
+			outA.println("<VLN>");
+			outA.println("</VLN>");
+			sreturnXml = sreturnXml + "<VLN></VLN>";
+		}
+	}
 
     public String Query_PartnerMSISDNStatus() throws SQLException, IOException{
     String imsisdn="";

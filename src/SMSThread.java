@@ -168,7 +168,7 @@ public class SMSThread {
 		param=param.replace("{{PID}}",PID );
 		param=param.replace("{{DCS}}",DCS );
 
-		return HttpPost("http://192.168.10.125:8800/Send Binary Message Other.htm",param,"");
+		return HttpPost("http://10.42.200.100:8800/Send Binary Message Other.htm",param,"");
 	}
 	
 	public static void send_SMS(String msg,String phone,String logid){
@@ -260,7 +260,7 @@ public class SMSThread {
 			param=param.replace("{{PID}}",PID );
 			param=param.replace("{{DCS}}",DCS );
 
-			return HttpPost("http://192.168.10.125:8800/Send%20Text%20Message.htm", param,"");
+			return HttpPost("http://10.42.200.100:8800/Send%20Text%20Message.htm", param,"");
 		}
 	    public static String HttpPost(String url,String param,String charset) throws IOException{
 			URL obj = new URL(url);
