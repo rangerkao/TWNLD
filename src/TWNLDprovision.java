@@ -2414,15 +2414,17 @@ public void ReRunStatus_18(PrintWriter out18) throws SQLException, IOException, 
 		} else if (cReqStatus.equals("17")) {
 			SMS17();
 			//XXX
-	    	String charge = checkDataStatus();
-	    	if(!"0".equals(charge)){
-	    		Send_AlertMail("Please check user charge status!"+"\n<br>"
-	    						+ "S2t IMSI : "+cS2TIMSI+"\n<br>"
-	    						+ "S2t Msisdn : "+cS2TMSISDN+"\n<br>"
-								+ "CHT IMSI : "+cTWNLDIMSI+"\n<br>"
-								+ "CHT Msisdn : "+cTWNLDMSISDN+"\n<br>"
-								+ "Charge : "+charge);
-	    	}
+			if (cGPRS.equals("1")){
+		    	String charge = checkDataStatus();
+		    	if(!"0".equals(charge)){
+		    		Send_AlertMail("DVRS has disabled GPRS, TWNLD want to enable!"+"\n<br>"
+		    						+ "S2t IMSI : "+cS2TIMSI+"\n<br>"
+		    						+ "S2t Msisdn : "+cS2TMSISDN+"\n<br>"
+									+ "CHT IMSI : "+cTWNLDIMSI+"\n<br>"
+									+ "CHT Msisdn : "+cTWNLDMSISDN+"\n<br>"
+									+ "Charge : "+charge);
+		    	}
+			}
 		} else if (cReqStatus.equals("18")) {
 			SMS18();
 		} else if (cReqStatus.equals("99")) {
@@ -4479,7 +4481,8 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
 			if(serviceId!=null){
 				sSql = "SELECT Case when A.CHARGE>5000 then  A.CHARGE  else 0 end AB "
 						+ "FROM HUR_CURRENT A "
-						+ "WHERE A.MONTH = '"+sdf.format(new Date())+"' AND A.SERVICEID = '"+serviceId+"' ";
+						+ "WHERE A.SERVICEID NOT IN (SELECT SERVICEID FROM HUR_GPRS_THRESHOLD B WHERE B.CANCEL_DATE IS NULL) "
+						+ "AND A.MONTH = '"+sdf.format(new Date())+"' AND A.SERVICEID = '"+serviceId+"' ";
 				
 				 Temprs = s2t.Query(sSql);
 				 logger.info("Query user charge:"+sSql);
@@ -4487,6 +4490,7 @@ public void Query_PreProcessResult_null(PrintWriter outA, String rcode) throws E
 			     while(Temprs.next()){
 			     	result = Temprs.getString("AB");
 			     }
+			     logger.info("result:"+result);
 			    
 			}
 		} catch (SQLException e) {
