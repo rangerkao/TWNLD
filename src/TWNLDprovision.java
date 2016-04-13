@@ -396,7 +396,7 @@ public class TWNLDprovision extends HttpServlet {
 
 			ba = Connect_DB();
 			logger.info("Connect Database:" + ba);
-
+			
 			if ((ba == true) && (!cReqStatus.equals(""))) {
 				if (!dReqDate.equals("")) {
 					Sdate = dReqDate.substring(4, 6) + "/"
@@ -591,7 +591,9 @@ public class TWNLDprovision extends HttpServlet {
 						+ "<Return_Code>601</Return_Code><Return_DateTime>"
 						+ s2t.Date_Format() + s2t.Date_Format_Time()
 						+ "</Return_DateTime>";
-				Send_AlertMail();
+				
+				Process_Code = cRCode;
+				//Send_AlertMail();
 			}
 		} catch (SQLException ex) {
 			StringWriter s = new StringWriter();
