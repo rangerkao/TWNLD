@@ -4707,7 +4707,8 @@ public class TWNLDprovision extends HttpServlet {
 		String cMesg = "";
 
 		// 20150812 mod 15 to 18
-		for (i = 0; i < 18; i++) {
+		// 20160413 mod 18 to 25
+		for (i = 0; i < 25; i++) {
 			Thread.sleep(2000);
 
 			Temprs = null;
@@ -5436,6 +5437,11 @@ public class TWNLDprovision extends HttpServlet {
 
 		while (Temprs.next()) {
 			Ssvrid = Temprs.getString("ab");
+		}
+		
+		//20160413 avoicd to check followmedata when request is 17,18,99
+		if("17".equals(cReqStatus)||"18".equals(cReqStatus)||"99".equals(cReqStatus)){
+			return Ssvrid;
 		}
 
 		if (!Ssvrid.equals("0")) {
