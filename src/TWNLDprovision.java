@@ -2509,7 +2509,8 @@ public class TWNLDprovision extends HttpServlet {
 			sSql = "SELECT b.countryinit||a.vln as ab FROM vlnnumber a, "
 					+ "COUNTRYINITIAL b WHERE a.vplmnid=b.vplmnid "
 					+ "AND a.serviceid = (SELECT MAX(Serviceid) FROM imsi WHERE homeimsi = '"
-					+ cTWNLDIMSI + "')";
+					+ cTWNLDIMSI + "') "
+					+ "AND a.status=1 ";//20160728 add
 
 			TempRt = s2t.Query(sSql);
 
@@ -2592,9 +2593,10 @@ public class TWNLDprovision extends HttpServlet {
 		}
 	}
 
-	public void SMS00() throws SQLException {
+	public void SMS00() throws SQLException, UnsupportedEncodingException {
 
-		// 20150717 mod
+		//20160815 mod
+		/*// 20150717 mod
 		String VARREALMSG = "";
 		VARREALMSG += "親愛的客戶：您的「環球卡」香港副號+" + cS2TMSISDN;
 		VARREALMSG += "已開通。在您抵達海外時請確認關閉飛航模式並重新開機，副號將顯示在手機上。";
@@ -2611,20 +2613,29 @@ public class TWNLDprovision extends HttpServlet {
 
 		// 20150717 add 提醒開通數據
 		VARREALMSG = "";
+		//20160728 mod
 		VARREALMSG += "只要開通環球卡數據漫遊服務，即可在中國、香港、澳門、日本、韓國、印尼自動享有日租型吃到飽上網服務";
 		VARREALMSG += "，不必每次出國申請，有使用才收費，方便又省錢。請即電洽客服0928-000107辦理開通。";
 
+		VARREALMSG += "只要開通環球卡數據漫遊服務，即可在中國、香港、澳門、日本、韓國、印尼、澳洲自動享有日租型吃到飽上網服務"
+				+ "，不必每次出國申請，有使用才收費，方便又省錢。請即電洽客服0928-000107辦理開通。";
+		
 		send_SMS(
 				VARREALMSG,
 				new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()
-						.getTime() + SMS_Delay_Time)));
+						.getTime() + SMS_Delay_Time)));*/
+		
+		//20160815 add
+		for(String s:getSMSMsg("1000", new String[]{cS2TMSISDN})){
+			send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+		}
 
 		SMS07();
 
 		SMS17();
 	}
 
-	public void SMS07() throws SQLException {
+	public void SMS07() throws SQLException, UnsupportedEncodingException {
 		String sMd, VARREALMSG;
 
 		if (vln.size() > 0) {
@@ -2661,11 +2672,16 @@ public class TWNLDprovision extends HttpServlet {
 					s2t.Update(sSql);
 
 					if (!"".equals(cV)) {
-						// 20150717 add
+						//20160815 mod
+						/*// 20150717 add
 						VARREALMSG = "您申請的「環球卡」" + cV + "副號+" + cVLNc + "已開通。";
 						send_SMS(VARREALMSG, new SimpleDateFormat(
 								"yyyyMMddHHmm").format(new Date(new Date()
-								.getTime() + SMS_Delay_Time)));
+								.getTime() + SMS_Delay_Time)));*/
+						
+						for(String s:getSMSMsg("1071", new String[]{cV,cVLNc})){
+							send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+						}
 					}
 
 				} else if (sMd.equals("D")) {
@@ -2675,23 +2691,34 @@ public class TWNLDprovision extends HttpServlet {
 					s2t.Update(sSql);
 
 					if (!"".equals(cV)) {
-						// 20150717 add
+						//20160815mod
+						/*// 20150717 add
 						VARREALMSG = "《溫馨提醒》親愛的環球卡用戶，您的" + cV + "副號+" + cVLNc
 								+ "已依您選擇完成退租。日後如有需要，歡迎隨時加選。感謝您！";
 						send_SMS(VARREALMSG, new SimpleDateFormat(
 								"yyyyMMddHHmm").format(new Date(new Date()
-								.getTime() + SMS_Delay_Time)));
+								.getTime() + SMS_Delay_Time)));*/
+						
+						for(String s:getSMSMsg("1070", new String[]{cV,cVLNc})){
+							send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+						}
 					}
 				}
 			}
 		}
 	}
 
-	public void SMS17() {
+	public void SMS17() throws UnsupportedEncodingException, SQLException {
 		String VARREALMSG = "";
 		if (cGPRS.equals("1")) {
-			// 20150717 add
+			//20160815 mod
+			/*// 20150717 add
+			//20160728 mod
 			VARREALMSG = "您已開通環球卡數據服務，除中國、香港、澳門、日本、韓國、印尼有每日收費上限外，"
+					+ "其餘國家均按實際用量收費，不提供吃到飽方案，請謹慎使用。另有香港/中國華人上網包提供月租上網吃到飽服務，"
+					+ "歡迎加選，請洽客服+886-928-000-107。";
+			
+			VARREALMSG = "您已開通環球卡數據服務，除中國、香港、澳門、日本、韓國、印尼、澳洲有每日收費上限外，"
 					+ "其餘國家均按實際用量收費，不提供吃到飽方案，請謹慎使用。另有香港/中國華人上網包提供月租上網吃到飽服務，"
 					+ "歡迎加選，請洽客服+886-928-000-107。";
 
@@ -2724,11 +2751,15 @@ public class TWNLDprovision extends HttpServlet {
 			// send_SMS1(VARREALMSG);
 			send_SMS(VARREALMSG,
 					new SimpleDateFormat("yyyyMMddHHmm").format(new Date(
-							new Date().getTime() + SMS_Delay_Time)));
+							new Date().getTime() + SMS_Delay_Time)));*/
+			
+			for(String s:getSMSMsg("1171", new String[]{})){
+				send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+			}
 		}
 	}
 
-	public void SMS18() {
+	public void SMS18() throws UnsupportedEncodingException, SQLException {
 		String VARREALMSG = "", PACKAGE = "";// ,PAYMENT="";
 		// 20150518 modify sms for multi-actionItem
 		for (Map<String, String> m : cAddonItem) {
@@ -2747,33 +2778,47 @@ public class TWNLDprovision extends HttpServlet {
 			}
 
 			if (cAddonAction.equals("A")) {
-				// 20150717 add
+				//20160815 mod
+				/*// 20150717 add
 				VARREALMSG = "親愛的環球卡用戶，您加選的" + PACKAGE + "月租服務已開通，環球卡感謝您！";
 				send_SMS(VARREALMSG,
 						new SimpleDateFormat("yyyyMMddHHmm").format(new Date(
-								new Date().getTime() + SMS_Delay_Time)));
+								new Date().getTime() + SMS_Delay_Time)));*/
+				
+				for(String s:getSMSMsg("1181", new String[]{PACKAGE})){
+					send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+				}
 			} else {
-				VARREALMSG += "《溫馨提醒》親愛的環球卡用戶，您所選的" + PACKAGE;
+				//20160815 mod
+				/*VARREALMSG += "《溫馨提醒》親愛的環球卡用戶，您所選的" + PACKAGE;
 				VARREALMSG += "服務已經依您選擇完成退租。日後如有需要，歡迎隨時加選。環球卡感謝您！";
 
 				send_SMS(VARREALMSG,
 						new SimpleDateFormat("yyyyMMddHHmm").format(new Date(
-								new Date().getTime() + SMS_Delay_Time)));
+								new Date().getTime() + SMS_Delay_Time)));*/
+				for(String s:getSMSMsg("1180", new String[]{PACKAGE})){
+					send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+				}
+				
 			}
 		}
 
 	}
 
-	public void SMS99() {
-		// 20151015 add
-
+	public void SMS99() throws UnsupportedEncodingException, SQLException {
+		//20160815 mod
+		/*// 20151015 add
 		String VARREALMSG = "《溫馨提醒》您的環球卡服務暨香港副號+" + cS2TMSISDN
 				+ "已退租。日後如有需要，歡迎隨時申請。如非您本人申請，請速洽中華電信更正。感謝！";
 		send_SMS(
 				VARREALMSG,
 				new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()
-						.getTime() + SMS_Delay_Time)));
+						.getTime() + SMS_Delay_Time)));*/
 
+		for(String s:getSMSMsg("1180", new String[]{cS2TMSISDN})){
+			send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+		}
+		
 		send_OTA_SMS(new SimpleDateFormat("yyyyMMddHHmm").format(new Date()));
 	}
 
@@ -3776,7 +3821,7 @@ public class TWNLDprovision extends HttpServlet {
 	// Select S2T_MSISDN
 	public void Find_AvailableS2TMSISDN() throws SQLException, IOException {
 		Temprs = null;
-
+		cS2TMSISDN = null;
 		checkExcludeNumber(cTWNLDMSISDN);
 		if(cS2TMSISDN==null || "".equals(cS2TMSISDN) || cS2TMSISDN.equals("null")){
 			sSql = "Select case when count(min(s2tmsisdn))=0 then 'null' else min(s2tmsisdn) "
@@ -4022,11 +4067,13 @@ public class TWNLDprovision extends HttpServlet {
 		} else if (sMo.equals("D")) {
 			Temprs = null;
 			cVLNNUMBER = "null";
-			sSql = "SELECT a.vln as ab FROM vlnnumber a, COUNTRYINITIAL b "
+			sSql = "SELECT a.vln as ab "
+					+ "FROM vlnnumber a, COUNTRYINITIAL b "
 					+ "WHERE a.vplmnid=b.vplmnid " + " AND vln LIKE '"
 					+ cCountryCode + "%' AND vlntype=1 AND a.serviceid = "
 					+ " (SELECT MAX(Serviceid) FROM imsi WHERE homeimsi = '"
-					+ cTWNLDIMSI + "')";
+					+ cTWNLDIMSI + "') "
+					+ "AND a.status=1 ";//20160728 add
 			logger.debug("Get_VLNNumber[D]:" + sSql);
 			Temprs = s2t.Query(sSql);
 			while (Temprs.next()) {
@@ -4121,7 +4168,8 @@ public class TWNLDprovision extends HttpServlet {
 					+ "WHERE a.vplmnid=b.vplmnid " + " AND vln LIKE '"
 					+ cCountryCode + "%' AND vlntype=1 AND a.serviceid = "
 					+ " (SELECT MAX(Serviceid) FROM imsi WHERE homeimsi = '"
-					+ cTWNLDIMSI + "')";
+					+ cTWNLDIMSI + "') "
+					+ "AND a.status=1 ";//20160728 add
 			logger.debug("reGet_VLNNumber[D]:" + sSql);
 			Temprs = s2t.Query(sSql);
 			while (Temprs.next()) {
@@ -4340,7 +4388,8 @@ public class TWNLDprovision extends HttpServlet {
 					+ "FROM vlnnumber a, COUNTRYINITIAL b"
 					+ " WHERE a.vplmnid=b.vplmnid AND a.serviceid = "
 					+ "(SELECT Serviceid FROM followmedata WHERE followmenumber = '"
-					+ cTWNLDMSISDN + "')";
+					+ cTWNLDMSISDN + "') "
+					+ "AND a.status=1 ";//20160728 add
 			Temprs = s2t.Query(sSql);
 			while (Temprs.next()) {
 				cVln = Temprs.getString("ab");
@@ -4434,7 +4483,8 @@ public class TWNLDprovision extends HttpServlet {
 					+ " FROM vlnnumber a, COUNTRYINITIAL b WHERE a.vplmnid=b.vplmnid"
 					+ " AND a.serviceid = "
 					+ "(SELECT MAX(Serviceid) FROM imsi WHERE homeimsi ='"
-					+ cTWNLDIMSI + "')";
+					+ cTWNLDIMSI + "') "
+					+ "AND a.status=1 ";//20160728 add
 			Temprs = s2t.Query(sSql);
 			while (Temprs.next()) {
 				cVln = Temprs.getString("ab");
@@ -5706,6 +5756,35 @@ public class TWNLDprovision extends HttpServlet {
 
 		// print result
 		return (response.toString());
+	}
+	
+	//20160815 add
+	public List<String> getSMSMsg(String num,String[] param) throws SQLException, UnsupportedEncodingException{
+		List<String> msg = new ArrayList<String> ();
+		
+		Temprs = null;
+		sSql = "select A.CONTENT from HUR_SMS_CONTENT A where A.ID ='"+num+"'";
+		logger.debug("select Msg content:" + sSql);
+		Temprs = s2t.Query(sSql);
+		
+		while (Temprs.next()) {
+			String m = Temprs.getString("CONTENT");
+
+			if(m!=null){
+				
+				m = new String(m.getBytes("ISO-8859-1"),"Big5");
+				
+				if(param!=null && param.length>0){
+					for(int i = 0;i<param.length ;i++){
+						m = m.replace("{{"+i+"}}", param[i]);
+					}
+				}				
+				msg.add(m);
+			}
+				
+		}
+		
+		return msg;
 	}
 	
 	public static void main(String args[]){
