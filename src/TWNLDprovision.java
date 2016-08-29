@@ -2494,6 +2494,67 @@ public class TWNLDprovision extends HttpServlet {
 			s2t.Update(sSql);
 
 			SMS00();
+		//20160824 add
+		} else if (cReqStatus.equals("03")) {
+			//更新美國流量包IMSI
+			//XXX
+			//Query serviceid new IMSI
+			String imsi = null,Serviceid = null;
+			sSql = "  select SERVICEID,IMSI FROM imsi WHERE homeimsi = '"
+					+ cTWNLDIMSI + "' ";
+
+			logger.info("query IMSI,serviceID" + sSql);
+			Temprs = s2t.Query(sSql);
+			while(Temprs.next()){
+				imsi = Temprs.getString("IMSI");
+				Serviceid = Temprs.getString("SERVICEID");
+			}
+			
+			if(Serviceid==null){
+				Send_AlertMail("For TWNLDIMSI:"+cTWNLDIMSI+" can't find serviceId to update volumepocket table.");
+			}else{
+				Temprs = null;
+				//Query 美國流量包資料
+				sSql = " select PID,START_DATE,END_DATE,CURRENCY,MCC "
+						+ "from HUR_VOLUME_POCKET where CANCEL_TIME is null and TYPE = 0 AND SERVICEID = '"+Serviceid+"'";
+				String pid,currency,mcc;
+				Date startDate,endDate,today=new Date();
+				
+				SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+				logger.info("query volumepocket data" + sSql);
+				Temprs = s2t.Query(sSql);
+				while(Temprs.next()){
+					pid = Temprs.getString("PID");
+					currency = Temprs.getString("CURRENCY");
+					mcc = Temprs.getString("MCC");
+					startDate = sdf.parse(Temprs.getString("START_DATE"));
+					endDate = sdf.parse(Temprs.getString("END_DATE"));
+					
+					if(today.before(startDate)){
+						//直接修改IMSI
+						sSql ="update HUR_VOLUME_POCKET set IMSI = '"+imsi+"' where pid = '"+pid+"'";
+						logger.info("update volumepocket data" + sSql);
+						s2t.Update(sSql);
+						Send_AlertMail("For Serviceid:"+Serviceid+" update volumepocket table. SQL:"+sSql);
+					}else if(today.after(startDate)&&today.before(endDate)){
+						String sToday = sdf.format(today);
+						//重建新資料
+						sSql ="update HUR_VOLUME_POCKET set END_DATE = '"+sToday+"' where pid = '"+pid+"'";
+						logger.info("update volumepocket data" + sSql);
+						s2t.Update(sSql);
+						
+						sSql = "insert into HUR_VOLUME_POCKET (PID,SERVICEID,START_DATE,END_DATE,IMSI,CURRENCY,MCC) "
+								+ "values("+pid+",'"+Serviceid+"','"+sToday+"','"+Temprs.getString("END_DATE")+"','"+imsi+"','"+currency+"','"+mcc+"')";
+						logger.info("insert volumepocket data" + sSql);
+						s2t.Update(sSql);
+					
+						Send_AlertMail("For Serviceid:"+Serviceid+" update volumepocket table. SQL:"+sSql);
+					}else if(today.after(endDate)){
+						//不做任何事
+					}
+					
+				}
+			}
 		} else if (cReqStatus.equals("05")) {
 			sSql = "update availablemsisdn set partnermsisdn='" + cTWNLDMSISDN
 					+ "',lastupdatetime=sysdate where partnermsisdn='"
@@ -2636,7 +2697,8 @@ public class TWNLDprovision extends HttpServlet {
 	}
 
 	public void SMS07() throws SQLException, UnsupportedEncodingException {
-		String sMd, VARREALMSG;
+		String sMd;
+		//String VARREALMSG;
 
 		if (vln.size() > 0) {
 			vln.firstElement();
@@ -2709,7 +2771,7 @@ public class TWNLDprovision extends HttpServlet {
 	}
 
 	public void SMS17() throws UnsupportedEncodingException, SQLException {
-		String VARREALMSG = "";
+		//String VARREALMSG = "";
 		if (cGPRS.equals("1")) {
 			//20160815 mod
 			/*// 20150717 add
@@ -2760,10 +2822,11 @@ public class TWNLDprovision extends HttpServlet {
 	}
 
 	public void SMS18() throws UnsupportedEncodingException, SQLException {
-		String VARREALMSG = "", PACKAGE = "";// ,PAYMENT="";
+		//String VARREALMSG = "";
+		String PACKAGE = "";// ,PAYMENT="";
 		// 20150518 modify sms for multi-actionItem
 		for (Map<String, String> m : cAddonItem) {
-			VARREALMSG = "";
+			//VARREALMSG = "";
 			cAddonCode = m.get("AddonCode");
 			cAddonAction = m.get("AddonAction");
 
@@ -3796,7 +3859,6 @@ public class TWNLDprovision extends HttpServlet {
 	}
 
 	static //20160321 add
-	//XXX
 	Map<String,String> excludeTWNLDNUMBER = new HashMap<String,String>();
 	public void checkExcludeNumber(String twnldMsisdn) {
 		logger.info("checkExcludeNumber");
@@ -4679,7 +4741,6 @@ public class TWNLDprovision extends HttpServlet {
 		logger.info("Process_Code:" + rcode);
 		Process_Code = rcode;
 
-		//XXX
 		//20160321
 		if(excludeTWNLDNUMBER.containsKey(cTWNLDMSISDN)){
 			if(cReqStatus.equals("00")){
@@ -5460,7 +5521,6 @@ public class TWNLDprovision extends HttpServlet {
 			s2t.Update(sSql);
 			
 			//20160323 add
-			//XXX
 			if(excludeTWNLDNUMBER.containsKey(cTWNLDMSISDN)){
 				excludeTWNLDNUMBER.remove(cTWNLDMSISDN);
 				cS2TMSISDN = "";
