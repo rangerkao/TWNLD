@@ -710,7 +710,7 @@ public class TWNLDprovision extends HttpServlet {
 							csta = "0";
 							//20160623 add
 							//read File
-							readTxt();
+							//readTxt();
 							while (csta.equals("0")) {
 								Find_AvailableS2TMSISDN();
 								if (!cS2TMSISDN.equals("null")) {
@@ -1700,6 +1700,17 @@ public class TWNLDprovision extends HttpServlet {
 								sError = "";
 								sError = Check_VLNStatus(cVLNCountry);
 								if (sError.equals("0")) {
+									
+									//20161101 add
+									if(cVLNCountry.toUpperCase().indexOf("CHNA")!=-1){
+										//寄送簡訊
+										for(String s:getSMSMsg("1072", null)){
+											send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+										}
+										//移除CHNA段
+										cVLNCountry = cVLNCountry.replaceAll("CHNA", "").replaceAll(",,", ",").replaceAll("^,", "").replaceAll(",$", "");
+									}
+									
 									if (!cVLNCountry.equals("")) {
 										sError = "";
 										sError = Process_VLNString(cVLNCountry);
@@ -2745,7 +2756,12 @@ public class TWNLDprovision extends HttpServlet {
 							send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
 						}
 					}
-
+					//20161101 del
+					/*if("中國".equalsIgnoreCase(cV)){
+						for(String s:getSMSMsg("1072", new String[]{cV,cVLNc})){
+							send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+						}
+					}*/
 				} else if (sMd.equals("D")) {
 					sSql = "update availableVLN set Status='Z',lastupdatetime=sysdate,s2tmsisdn='' "
 							+ "where VLNNUMBER='" + cVLNc + "'";
@@ -3884,7 +3900,7 @@ public class TWNLDprovision extends HttpServlet {
 	public void Find_AvailableS2TMSISDN() throws SQLException, IOException {
 		Temprs = null;
 		cS2TMSISDN = null;
-		checkExcludeNumber(cTWNLDMSISDN);
+		//checkExcludeNumber(cTWNLDMSISDN);
 		if(cS2TMSISDN==null || "".equals(cS2TMSISDN) || cS2TMSISDN.equals("null")){
 			sSql = "Select case when count(min(s2tmsisdn))=0 then 'null' else min(s2tmsisdn) "
 					+ "end as ab From availableMSISDN Where mnosubcode='"
@@ -4741,7 +4757,8 @@ public class TWNLDprovision extends HttpServlet {
 		logger.info("Process_Code:" + rcode);
 		Process_Code = rcode;
 
-		//20160321
+		//20160905
+		/*//20160321
 		if(excludeTWNLDNUMBER.containsKey(cTWNLDMSISDN)){
 			if(cReqStatus.equals("00")){
 				if (rcode.equals("000") || rcode.equals("501")) {
@@ -4753,9 +4770,9 @@ public class TWNLDprovision extends HttpServlet {
 		}else{
 			if (!cReqStatus.equals("97") && !cReqStatus.equals("98")
 					&& !cReqStatus.equals("18")) {
-				/*
+				
 				 * logger.info("Process_Code:" + rcode); Process_Code = rcode;
-				 */
+				 
 
 				if (rcode.equals("000") || rcode.equals("501")) {
 					rcode = Query_ServiceOrderStatus(outA);
@@ -4764,6 +4781,13 @@ public class TWNLDprovision extends HttpServlet {
 				}
 			}
 
+		}*/
+		if (!cReqStatus.equals("97") && !cReqStatus.equals("98") && !cReqStatus.equals("18")) {
+			if (rcode.equals("000") || rcode.equals("501")) {
+				rcode = Query_ServiceOrderStatus(outA);
+			} else {
+				Rollback_VLNNumber(rcode);
+			}
 		}
 		
 		// rcode = "000"; //****************************************
@@ -5841,13 +5865,12 @@ public class TWNLDprovision extends HttpServlet {
 				}				
 				msg.add(m);
 			}
-				
 		}
 		
 		return msg;
 	}
 	
 	public static void main(String args[]){
-		readTxt();
+		//readTxt();
 	}
 }
