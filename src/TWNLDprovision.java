@@ -432,10 +432,17 @@ public class TWNLDprovision extends HttpServlet {
 					// 20150506 mod
 					if ("18".equals(cReqStatus) && cAddonItem.size() == 0) {
 						logger.debug("AddonCode or AddonAction is ineffective!");
-						Query_PreProcessResult(out, "000");
-						return;
+						//20170113 add
+						
+						if(parseDocumentToXML(doc1).indexOf("SX000")==-1){
+							//Send_AlertMail("At Executing Request 18 found the action Item is incorrected.\n\n"+parseDocumentToXML(doc1));
+							Query_PreProcessResult(out, "422");
+						}else{
+							Query_PreProcessResult(out, "000");
+						}
 
-					}
+					}else
+					
 
 					if (!cSubscrId.equals(cTicketNumber)) {
 						switch (Integer.parseInt(cReqStatus)) {
@@ -1738,6 +1745,8 @@ public class TWNLDprovision extends HttpServlet {
 									Query_PreProcessResult(out7, "330");
 								} else if (sError.equals("331")) {
 									Query_PreProcessResult(out7, "331");
+								} else if (sError.equals("402")) {
+									Query_PreProcessResult(out7, "402");
 								}
 							} else {
 								Query_PreProcessResult(out7, "211");
@@ -2153,8 +2162,9 @@ public class TWNLDprovision extends HttpServlet {
 					+ "WHERE A.ENDDATE IS NULL and A.SERVICECODE ='"
 					+ cAddonCode + "' " + "AND A.S2TIMSI='" + cS2TIMSI
 					+ "' " // AND A.S2TMSISDN='"+cS2TMSISDN+"' " //20150914 mod
-					+ "AND A.MNOIMSI='" + cTWNLDIMSI + "' AND A.MNOMSISDN='"
-					+ cTWNLDMSISDN + "' ";
+					+ "AND A.MNOIMSI='" + cTWNLDIMSI + "' "
+					//+ "AND A.MNOMSISDN='"+ cTWNLDMSISDN + "' "
+					+ " ";
 			ResultSet rs = s2t.Query(sSql);
 			logger.debug("select Addon_N Not end:" + sSql);
 			String count = null;
@@ -2228,7 +2238,10 @@ public class TWNLDprovision extends HttpServlet {
 									// //20150914 mod
 							+ "AND A.MNOIMSI='"
 							+ cTWNLDIMSI
-							+ "' AND A.MNOMSISDN='" + cTWNLDMSISDN + "' ";
+							+ "' "
+							//20170113 del
+							//+ "AND A.MNOMSISDN='" + cTWNLDMSISDN +"' "
+							+ " ";
 
 					s2t.Update(sSql);
 					logger.debug("Update ADDONSERVICE_N:" + sSql);
@@ -2894,7 +2907,7 @@ public class TWNLDprovision extends HttpServlet {
 				new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()
 						.getTime() + SMS_Delay_Time)));*/
 
-		for(String s:getSMSMsg("1180", new String[]{cS2TMSISDN})){
+		for(String s:getSMSMsg("1990", new String[]{cS2TMSISDN})){
 			send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
 		}
 		
@@ -3953,6 +3966,13 @@ public class TWNLDprovision extends HttpServlet {
 			SQLException {
 		int iACut = 0, iEQ = 0;
 		String sVA = "", sMA = "", sCNN, SQLa = "", sEQ = "";// ,strA="",sEA=""
+		
+		//20170113 add
+		if(ScutA.length() == 0){
+			iEQ = 402;
+			return Integer.toString(iEQ);
+		}
+		
 		while (ScutA.length() > 0) {
 			iACut = ScutA.indexOf(",");
 			if (iACut > 0) {
@@ -4011,6 +4031,12 @@ public class TWNLDprovision extends HttpServlet {
 			SQLException {
 		int iACut = 0, iEQ = 0;
 		String sVA = "", sMA = "", sCNN, SQLa = "", sEQ = "";// ,strA="",sEA=""
+		//20170116 add
+		if(ScutA.length() == 0){
+			iEQ = 402;
+			return Integer.toString(iEQ);
+		}
+				
 		while (ScutA.length() > 0) {
 			iACut = ScutA.indexOf(",");
 			if (iACut > 0) {
