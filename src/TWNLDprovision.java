@@ -121,13 +121,15 @@ public class TWNLDprovision extends HttpServlet {
 	static Runtime runtime = Runtime.getRuntime();
 	static String Run_Shell = "", Process_Code = null, Old_result_flag = null,
 			Ssubsidiaryid = "59";
+	
+	static int SMSTimes = 0;
 	public static Properties s2tconf = new Properties();
 	int i, n = 0, y, l, f, iVLN, iError = 0, iCut = 0, iCountA = 0;
 	boolean ba, bb, bc, bd, sessionDebug = true;
 	public java.util.Properties props = System.getProperties();
 
 	// 20150520 add
-	List<Map<String, String>> delaySMS = new ArrayList<Map<String, String>>();
+	//List<Map<String, String>> delaySMS = new ArrayList<Map<String, String>>();
 
 	// 20140919 Add RecordErrorSQL
 	String sErrorSQL = "", iErrorMsg = "";
@@ -349,7 +351,7 @@ public class TWNLDprovision extends HttpServlet {
 
 		sErrorSQL = "";
 		iErrorMsg = "";
-		delaySMS.clear();
+		//delaySMS.clear();
 
 		// 20150529 add
 		desc = "";
@@ -358,6 +360,9 @@ public class TWNLDprovision extends HttpServlet {
 		cAddonAction = "";
 		cAddonItem.clear();
 		/*********************************************************/
+		
+		//20170613 add
+		SMSTimes = 0;
 
 		Load_Properties(out, getServletContext().getRealPath("/"));
 
@@ -1712,7 +1717,7 @@ public class TWNLDprovision extends HttpServlet {
 									if(cVLNCountry.toUpperCase().indexOf("CHNA")!=-1){
 										//寄送簡訊
 										for(String s:getSMSMsg("1072", null)){
-											send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+											send_SMS(s,	SMS_Delay_Time);
 										}
 										//移除CHNA段
 										cVLNCountry = cVLNCountry.replaceAll("CHNA", "").replaceAll(",,", ",").replaceAll("^,", "").replaceAll(",$", "");
@@ -2159,9 +2164,11 @@ public class TWNLDprovision extends HttpServlet {
 			// 20150724 新增修改AddonService_N
 			// 確認是否還有未中止的合約
 			sSql = "SELECT count(1)ab FROM ADDONSERVICE_N A "
-					+ "WHERE A.ENDDATE IS NULL and A.SERVICECODE ='"
-					+ cAddonCode + "' " + "AND A.S2TIMSI='" + cS2TIMSI
-					+ "' " // AND A.S2TMSISDN='"+cS2TMSISDN+"' " //20150914 mod
+					+ "WHERE A.ENDDATE IS NULL "
+					+ "and A.SERVICECODE ='"+ cAddonCode + "' " 
+					+ "AND A.S2TIMSI='" + cS2TIMSI	+ "' " 
+					// AND A.S2TMSISDN='"+cS2TMSISDN+"' " 
+					//20150914 mod
 					+ "AND A.MNOIMSI='" + cTWNLDIMSI + "' "
 					//+ "AND A.MNOMSISDN='"+ cTWNLDMSISDN + "' "
 					+ " ";
@@ -2712,13 +2719,15 @@ public class TWNLDprovision extends HttpServlet {
 		
 		//20160815 add
 		for(String s:getSMSMsg("1000", new String[]{cS2TMSISDN})){
-			send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+			send_SMS(s,	SMS_Delay_Time);
 		}
 
 		SMS07();
 
 		SMS17();
 	}
+	
+	
 
 	public void SMS07() throws SQLException, UnsupportedEncodingException {
 		String sMd;
@@ -2766,7 +2775,7 @@ public class TWNLDprovision extends HttpServlet {
 								.getTime() + SMS_Delay_Time)));*/
 						
 						for(String s:getSMSMsg("1071", new String[]{cV,cVLNc})){
-							send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+							send_SMS(s,SMS_Delay_Time);
 						}
 					}
 					//20161101 del
@@ -2791,7 +2800,7 @@ public class TWNLDprovision extends HttpServlet {
 								.getTime() + SMS_Delay_Time)));*/
 						
 						for(String s:getSMSMsg("1070", new String[]{cV,cVLNc})){
-							send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+							send_SMS(s,SMS_Delay_Time);
 						}
 					}
 				}
@@ -2845,7 +2854,7 @@ public class TWNLDprovision extends HttpServlet {
 							new Date().getTime() + SMS_Delay_Time)));*/
 			
 			for(String s:getSMSMsg("1171", new String[]{})){
-				send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+				send_SMS(s,SMS_Delay_Time);
 			}
 		}
 	}
@@ -2867,34 +2876,39 @@ public class TWNLDprovision extends HttpServlet {
 				// PACKAGE = "香港+大陸上網包";
 				PACKAGE = "香港+大陸華人上網包";
 				// PAYMENT = "NTD999";
+			}else if(cAddonCode.equals("SX003")){
+				for(String s:getSMSMsg("703", new String[]{PACKAGE})){
+					send_SMS(s);
+				}
 			}
 
-			if (cAddonAction.equals("A")) {
-				//20160815 mod
-				/*// 20150717 add
-				VARREALMSG = "親愛的環球卡用戶，您加選的" + PACKAGE + "月租服務已開通，環球卡感謝您！";
-				send_SMS(VARREALMSG,
-						new SimpleDateFormat("yyyyMMddHHmm").format(new Date(
-								new Date().getTime() + SMS_Delay_Time)));*/
-				
-				for(String s:getSMSMsg("1181", new String[]{PACKAGE})){
-					send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
-				}
-			} else {
-				//20160815 mod
-				/*VARREALMSG += "《溫馨提醒》親愛的環球卡用戶，您所選的" + PACKAGE;
-				VARREALMSG += "服務已經依您選擇完成退租。日後如有需要，歡迎隨時加選。環球卡感謝您！";
+			if(!"".equals(PACKAGE)){
+				if (cAddonAction.equals("A")) {
+					//20160815 mod
+					/*// 20150717 add
+					VARREALMSG = "親愛的環球卡用戶，您加選的" + PACKAGE + "月租服務已開通，環球卡感謝您！";
+					send_SMS(VARREALMSG,
+							new SimpleDateFormat("yyyyMMddHHmm").format(new Date(
+									new Date().getTime() + SMS_Delay_Time)));*/
+					
+					for(String s:getSMSMsg("1181", new String[]{PACKAGE})){
+						send_SMS(s,SMS_Delay_Time);
+					}
+				} else {
+					//20160815 mod
+					/*VARREALMSG += "《溫馨提醒》親愛的環球卡用戶，您所選的" + PACKAGE;
+					VARREALMSG += "服務已經依您選擇完成退租。日後如有需要，歡迎隨時加選。環球卡感謝您！";
 
-				send_SMS(VARREALMSG,
-						new SimpleDateFormat("yyyyMMddHHmm").format(new Date(
-								new Date().getTime() + SMS_Delay_Time)));*/
-				for(String s:getSMSMsg("1180", new String[]{PACKAGE})){
-					send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+					send_SMS(VARREALMSG,
+							new SimpleDateFormat("yyyyMMddHHmm").format(new Date(
+									new Date().getTime() + SMS_Delay_Time)));*/
+					for(String s:getSMSMsg("1180", new String[]{PACKAGE})){
+						send_SMS(s,SMS_Delay_Time);
+					}
+					
 				}
-				
-			}
+			}	
 		}
-
 	}
 
 	public void SMS99() throws UnsupportedEncodingException, SQLException {
@@ -2908,10 +2922,10 @@ public class TWNLDprovision extends HttpServlet {
 						.getTime() + SMS_Delay_Time)));*/
 
 		for(String s:getSMSMsg("1990", new String[]{cS2TMSISDN})){
-			send_SMS(s,	new SimpleDateFormat("yyyyMMddHHmm").format(new Date(new Date()	.getTime() + SMS_Delay_Time)));
+			send_SMS(s,SMS_Delay_Time);
 		}
 		
-		send_OTA_SMS(new SimpleDateFormat("yyyyMMddHHmm").format(new Date()));
+		send_OTA_SMS(new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
 	}
 
 	public void S501(PrintWriter outA, String sRCode) {
@@ -5218,30 +5232,25 @@ public class TWNLDprovision extends HttpServlet {
 							// 20150206 change
 
 							Element first = (Element) itemNode;
-							NodeList codeNode = first
-									.getElementsByTagName("Addon_Code");
+							NodeList codeNode = first	.getElementsByTagName("Addon_Code");
 							Element codeElement = (Element) codeNode.item(0);
 							NodeList codeNodeList = codeElement.getChildNodes();
-							cAddonCode = ((Node) codeNodeList.item(0))
-									.getNodeValue().trim();
+							cAddonCode = ((Node) codeNodeList.item(0)).getNodeValue().trim();
 
 							Sparam = Sparam + ","
 									+ codeNode.item(0).getNodeName() + "="
 									+ cAddonCode;
 
-							NodeList actionNode = first
-									.getElementsByTagName("Addon_Action");
-							Element actionElement = (Element) actionNode
-									.item(0);
-							NodeList actionNodeList = actionElement
-									.getChildNodes();
-							cAddonAction = ((Node) actionNodeList.item(0))
-									.getNodeValue().trim();
+							NodeList actionNode = first	.getElementsByTagName("Addon_Action");
+							Element actionElement = (Element) actionNode	.item(0);
+							NodeList actionNodeList = actionElement.getChildNodes();
+							cAddonAction = ((Node) actionNodeList.item(0)).getNodeValue().trim();
 
 							Sparam = Sparam + ","
 									+ actionNode.item(0).getNodeName() + "="
 									+ cAddonAction;
 
+							//放棄SX000 無效代碼
 							if ("18".equals(cReqStatus)
 									&& "SX000".equalsIgnoreCase(cAddonCode)) {
 								logger.info("Give up SX000 Data...");
@@ -5340,7 +5349,10 @@ public class TWNLDprovision extends HttpServlet {
 			map.put("sendtime", sendtime);
 			map.put("SMSLOGID", logid);
 
-			SMSThread.delaySMS.add(map);
+			synchronized(SMSThread.delaySMS){
+				SMSThread.delaySMS.add(map);
+			}
+			
 
 			VARREALMSG1 = new String(VARREALMSG1.getBytes("BIG5"), "ISO-8859-1");
 
@@ -5447,8 +5459,13 @@ public class TWNLDprovision extends HttpServlet {
 		Send_AlertMail(cont + "<br>" + s);
 	}
 
-	public void send_SMS(String VARREALMSG1, String sendtime) {
+	
+	public void send_SMS(String VARREALMSG1, long Delay_Time) {
 		logger.debug("send_SMS delay");
+		
+		int i = SMSTimes++;
+		
+		String sendtime = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date(new Date()	.getTime() + Delay_Time+ (1000*i)));
 
 		// 20150626 add
 		String phone = cTWNLDMSISDN;
@@ -5469,7 +5486,10 @@ public class TWNLDprovision extends HttpServlet {
 			map.put("sendtime", sendtime);
 			map.put("SMSLOGID", logid);
 
-			SMSThread.delaySMS.add(map);
+			synchronized(SMSThread.delaySMS){
+				SMSThread.delaySMS.add(map);
+			}
+			
 
 			VARREALMSG1 = new String(VARREALMSG1.getBytes("BIG5"), "ISO-8859-1");
 
@@ -5479,7 +5499,7 @@ public class TWNLDprovision extends HttpServlet {
 					+ ", 'T','"
 					+ phone
 					+ "', to_date('"
-					+ sendtime + "','yyyyMMddhh24mi'), '" + VARREALMSG1 + "')";
+					+ sendtime + "','yyyyMMddhh24miss'), '" + VARREALMSG1 + "')";
 			logger.debug("SMS:" + sSql);
 
 			// 寫入資料庫

@@ -79,7 +79,7 @@ public class SMSThread {
 	}
 	static class SMSThread_Program implements Runnable {
 	    public void run() { // implements Runnable run()
-	    	SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmm");
+	    	SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
 	    	int count =0;
 			while(!Exit){
 				try {
@@ -91,22 +91,25 @@ public class SMSThread {
 		    		}
 					
 					//直接使用list.remove()會產生error，必須使用iterator，當iterator執行時會同步兩個參數的數值
-					Iterator<Map<String, String>> it = delaySMS.iterator();
-					while(it.hasNext()){
-						Map<String,String> m = it.next();
-						String msg=m.get("VARREALMSG");
-						msg = new String(msg.getBytes("BIG5"), "ISO-8859-1");
-						String phone=m.get("TWNLDMSISDN");
-						String sendtime=m.get("sendtime");
-						String logid = m.get("SMSLOGID");
-						
-						if(SMSThreadExcuteTime.after(sdf.parse(sendtime))){
-							if("OTA Message".equalsIgnoreCase(msg)){
-								send_OTASMS(msg,phone,logid);
-							}else{
-								send_SMS(msg,phone,logid);
+					
+					synchronized(delaySMS){
+						Iterator<Map<String, String>> it = delaySMS.iterator();
+						while(it.hasNext()){
+							Map<String,String> m = it.next();
+							String msg=m.get("VARREALMSG");
+							msg = new String(msg.getBytes("BIG5"), "ISO-8859-1");
+							String phone=m.get("TWNLDMSISDN");
+							String sendtime=m.get("sendtime");
+							String logid = m.get("SMSLOGID");
+							
+							if(SMSThreadExcuteTime.after(sdf.parse(sendtime))){
+								if("OTA Message".equalsIgnoreCase(msg)){
+									send_OTASMS(msg,phone,logid);
+								}else{
+									send_SMS(msg,phone,logid);
+								}
+								it.remove();
 							}
-							it.remove();
 						}
 					}
 				}catch (InterruptedException e){
