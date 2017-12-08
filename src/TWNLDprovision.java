@@ -39,7 +39,7 @@
  * 20141216 調整簡訊內容
  * 20150206 將AddonCode、AddonAction改為List，Request18以loop執行
  */
-
+ 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -593,7 +593,9 @@ public class TWNLDprovision extends HttpServlet {
 				// 20150504 mod
 				cRCode = "601";
 				out.println("<Return_Code>");
-				out.println("601");
+				// TODO
+				out.println("000");
+				//out.println("601");
 				out.println("</Return_Code>");
 				out.println("<Return_DateTime>");
 				out.println(s2t.Date_Format() + s2t.Date_Format_Time());
@@ -627,7 +629,9 @@ public class TWNLDprovision extends HttpServlet {
 
 			logger.info("Procedure End");
 			out.println("<Return_MSG>");
-			out.println(desc);
+			//TODO
+			//out.println(desc);
+			out.println("Requests succeed");
 			out.println("</Return_MSG>");
 			out.println("</ActivationRsp>");
 			sreturnXml = sreturnXml + "<Return_MSG>" + desc
@@ -2859,7 +2863,9 @@ public class TWNLDprovision extends HttpServlet {
 		}
 	}
 
+	//20170801 mod
 	public void SMS18() throws UnsupportedEncodingException, SQLException {
+		
 		//String VARREALMSG = "";
 		String PACKAGE = "";// ,PAYMENT="";
 		// 20150518 modify sms for multi-actionItem
@@ -2876,36 +2882,28 @@ public class TWNLDprovision extends HttpServlet {
 				// PACKAGE = "香港+大陸上網包";
 				PACKAGE = "香港+大陸華人上網包";
 				// PAYMENT = "NTD999";
-			}else if(cAddonCode.equals("SX003")){
-				for(String s:getSMSMsg("703", new String[]{PACKAGE})){
-					send_SMS(s);
-				}
 			}
 
-			if(!"".equals(PACKAGE)){
-				if (cAddonAction.equals("A")) {
-					//20160815 mod
-					/*// 20150717 add
-					VARREALMSG = "親愛的環球卡用戶，您加選的" + PACKAGE + "月租服務已開通，環球卡感謝您！";
-					send_SMS(VARREALMSG,
-							new SimpleDateFormat("yyyyMMddHHmm").format(new Date(
-									new Date().getTime() + SMS_Delay_Time)));*/
-					
+
+			if (cAddonAction.equals("A")) {
+				if(!"".equals(PACKAGE)){
 					for(String s:getSMSMsg("1181", new String[]{PACKAGE})){
 						send_SMS(s,SMS_Delay_Time);
 					}
-				} else {
-					//20160815 mod
-					/*VARREALMSG += "《溫馨提醒》親愛的環球卡用戶，您所選的" + PACKAGE;
-					VARREALMSG += "服務已經依您選擇完成退租。日後如有需要，歡迎隨時加選。環球卡感謝您！";
-
-					send_SMS(VARREALMSG,
-							new SimpleDateFormat("yyyyMMddHHmm").format(new Date(
-									new Date().getTime() + SMS_Delay_Time)));*/
+				}else if(cAddonCode.equals("SX003")){
+					for(String s:getSMSMsg("703", null)){
+						send_SMS(s,SMS_Delay_Time);
+					}
+				}
+			} else if (cAddonAction.equals("D")){
+				if(!"".equals(PACKAGE)){
 					for(String s:getSMSMsg("1180", new String[]{PACKAGE})){
 						send_SMS(s,SMS_Delay_Time);
 					}
-					
+				}else if(cAddonCode.equals("SX003")){
+					for(String s:getSMSMsg("707", null)){
+						send_SMS(s,SMS_Delay_Time);
+					}
 				}
 			}	
 		}
@@ -5893,7 +5891,10 @@ public class TWNLDprovision extends HttpServlet {
 		List<String> msg = new ArrayList<String> ();
 		
 		Temprs = null;
-		sSql = "select A.CONTENT from HUR_SMS_CONTENT A where A.ID ='"+num+"'";
+		sSql = "select A.CONTENT "
+				+ "from HUR_SMS_CONTENT A "
+				+ "where A.ID ='"+num+"' "
+				+ "AND A.START_DATE<= to_char(sysdate,'yyyyMMdd') AND (A.END_DATE IS NULL OR A.END_DATE>to_char(sysdate,'yyyyMMdd') ) ";
 		logger.debug("select Msg content:" + sSql);
 		Temprs = s2t.Query(sSql);
 		
