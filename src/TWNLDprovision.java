@@ -39,7 +39,7 @@
  * 20141216 調整簡訊內容
  * 20150206 將AddonCode、AddonAction改為List，Request18以loop執行
  */
- 
+
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -136,8 +136,19 @@ public class TWNLDprovision extends HttpServlet {
 
 	int SMS_Delay_Time = 5 * 60 * 1000;
 
-	// 20151127 add
-	String actionD = null, actionA = null;
+	
+	//20180104 add
+	static String M_4Gapn="", M_4Grc="", M_4GGID="";
+
+	//固態初始化
+	static{
+		setUnsendSMS();
+	}
+	
+	
+	private static void setUnsendSMS() {
+		
+	}
 
 	/**
 	 * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -398,6 +409,10 @@ public class TWNLDprovision extends HttpServlet {
 
 			doc1.normalize();
 			read_xml(doc1);
+			
+			//20180104 add
+			if(cGPRSStatus==null || "".equals(cGPRSStatus))
+				cGPRSStatus = "0";
 
 			ba = Connect_DB();
 			logger.info("Connect Database:" + ba);
@@ -580,14 +595,14 @@ public class TWNLDprovision extends HttpServlet {
 					Query_PreProcessResult(out, "110");
 				}
 			} else {
-				// 20150504 add
+				/*// 20150504 add
 				String s = "DB Error";
 				logger.error(s);
-				/*
+				
 				 * sSql="update PROVLOG set javaerrmsg='"+s.toString()+
 				 * "' where LOGID="+ sCMHKLOGID; s2t.Update(sSql);
 				 * sErrorSQL+=sSql;
-				 */
+				 
 				// Query_PreProcessResult(out,"601");
 
 				// 20150504 mod
@@ -608,6 +623,25 @@ public class TWNLDprovision extends HttpServlet {
 				
 				Process_Code = cRCode;
 				//Send_AlertMail();
+*/				
+				//20180117 add
+				String rcode = "601";
+				//cRCode = rcode;
+				logger.info("Return_Code:" + rcode);
+				out.println("<Return_Code>");
+				out.println(rcode);
+				out.println("</Return_Code>");
+				out.println("<Return_DateTime>");
+
+				sreturnXml = sreturnXml + "<Return_Code>" + rcode
+						+ "</Return_Code><Return_DateTime>";
+
+				out.println(s2t.Date_Format() + s2t.Date_Format_Time());
+				sreturnXml = sreturnXml + s2t.Date_Format() + s2t.Date_Format_Time();
+
+				out.println("</Return_DateTime>");
+				sreturnXml = sreturnXml + "</Return_DateTime>";
+				desc = "DBconnection error";
 			}
 		} catch (SQLException ex) {
 			StringWriter s = new StringWriter();
@@ -630,8 +664,8 @@ public class TWNLDprovision extends HttpServlet {
 			logger.info("Procedure End");
 			out.println("<Return_MSG>");
 			//TODO
-			//out.println(desc);
-			out.println("Requests succeed");
+			out.println(desc);
+			//out.println("Requests succeed");
 			out.println("</Return_MSG>");
 			out.println("</ActivationRsp>");
 			sreturnXml = sreturnXml + "<Return_MSG>" + desc
@@ -724,15 +758,16 @@ public class TWNLDprovision extends HttpServlet {
 						bc = Validate_PartnerMSISDNRange(cTWNLDMSISDN);
 						if (bc == true) {
 							csta = "0";
-							//20160623 add
-							//read File
-							//readTxt();
+							isExcludeNumber = false;
 							while (csta.equals("0")) {
 								Find_AvailableS2TMSISDN();
 								if (!cS2TMSISDN.equals("null")) {
 									csta = Check_S2T_Msisdn_UNused();
 								} else {
 									csta = "1";
+								}
+								if(isExcludeNumber) {
+									break;
 								}
 							}
 							if (!cS2TMSISDN.equals("null")) {
@@ -1333,7 +1368,7 @@ public class TWNLDprovision extends HttpServlet {
 						Temprs = null;
 
 						sSql = "select s2tmsisdn from availablemsisdn where partnermsisdn='"
-								+ cTWNLDMSISDN + "'";
+								+ cTWNLDMSISDN + "' and status = 'U' ";
 						logger.info("Find_OLDS2TMSISDN:" + sSql);
 						Temprs = s2t.Query(sSql);
 
@@ -1716,7 +1751,12 @@ public class TWNLDprovision extends HttpServlet {
 								sError = "";
 								sError = Check_VLNStatus(cVLNCountry);
 								if (sError.equals("0")) {
-									
+									//20180201
+									try {
+										setDiscountForVLN();
+									} catch (Exception e) {
+										ErrorHandle(e);
+									}
 									//20161101 add
 									if(cVLNCountry.toUpperCase().indexOf("CHNA")!=-1){
 										//寄送簡訊
@@ -1787,6 +1827,233 @@ public class TWNLDprovision extends HttpServlet {
 		} else {
 			Query_PreProcessResult(out7, "111");
 		}
+	}
+
+	public void setDiscountForVLN() throws Exception {
+		List<Map<String,String>> discountList = new ArrayList<Map<String,String>>();
+		//撈出此時間以VLN為優惠條件的項目
+		sSql = "select PARAMETER,USAGE,DISCOUNT_ID,ACTIVE_TIME,PERIOD "
+				+ "from TAPOUT_DISCOUNT_ITEM "
+				+ "where condition_type = '00' "
+				+ "and to_date(start_TIME,'yyyyMMddhh24miss') <= sysdate "
+				+ "and (END_TIME is null or to_date(END_TIME,'yyyyMMddhh24miss') >= sysdate)";
+		
+		logger.info("Query discont item:"+sSql);
+		
+		Temprs = null;
+		Temprs = s2t.Query(sSql);
+		
+		while(Temprs.next()) {
+			Map<String,String> m = new HashMap<String,String>();
+			m.put("DISCOUNT_ID", Temprs.getString("DISCOUNT_ID"));
+			m.put("USAGE", Temprs.getString("USAGE"));
+			m.put("PARAMETER", Temprs.getString("PARAMETER"));
+			m.put("ACTIVE_TIME", Temprs.getString("ACTIVE_TIME"));
+			m.put("PERIOD", Temprs.getString("PERIOD"));
+			discountList.add(m);
+		}
+		
+		if(!discountList.isEmpty()) {
+			String serviceid = null;
+			
+			sSql = "select serviceid from imsi where imsi = '"+cS2TIMSI+"'";
+			logger.info("get serviceid:"+sSql);
+			
+			Temprs = null;
+			Temprs = s2t.Query(sSql);
+			
+			if(Temprs.next()) {
+				serviceid = Temprs.getString("serviceid");
+			}
+			
+			
+			//取得用戶目前的項目優惠
+			sSql = "select A.LEFT_AMOUNT,A.USED_AMOUNT,A.REMARK,B.DISCOUNT_ID "
+					+ "from TAPOUT_DISCOUNT_USER A,TAPOUT_DISCOUNT_ITEM B "
+					+ "where A.DISCOUNT_ID = B.DISCOUNT_ID "
+					+ "and to_date(A.START_TIME ,'yyyyMMddhh24miss') <sysdate "
+					+ "and (A.END_TIME is null or sysdate <to_date(A.END_TIME ,'yyyyMMddhh24miss') ) "
+					+ "and B.CONDITION_TYPE = '00' "
+					+ "and A.SERVICEID = "+serviceid+" ";
+			
+			logger.info("Query user discount item:"+sSql);
+			
+			Temprs = null;
+			Temprs = s2t.Query(sSql);
+
+			Map<String,Map<String,String>> userItemMap = new HashMap<String,Map<String,String>>();
+			while(Temprs.next()) {
+				Map<String,String> m = new HashMap<String,String>();
+				m.put("LEFT_AMOUNT", Temprs.getString("LEFT_AMOUNT"));	
+				m.put("USED_AMOUNT", Temprs.getString("USED_AMOUNT"));	
+				m.put("REMARK", Temprs.getString("REMARK"));	
+				userItemMap.put(Temprs.getString("DISCOUNT_ID"), m);
+			}
+			
+			Set<String> countryCodes = new HashSet<String>();
+			//解析此次vln的國碼
+			if(cVLNCountry.contains("CHNA")) {
+				countryCodes.add("86");
+			}
+
+			if(cVLNCountry.contains("SGPA")) {
+				countryCodes.add("65");
+			}
+			
+			if(cVLNCountry.contains("THAA")) {
+				countryCodes.add("66");
+			}
+			
+			if(cVLNCountry.contains("IDNA")) {
+				countryCodes.add("62");
+			}
+			
+			
+		/*	for (n = 0; n < vln.size(); n++) {
+				sVln = vln.get(n);
+				y = sVln.indexOf(",");
+				sVln = sVln.substring(y + 1, sVln.length());
+				y = sVln.indexOf(",");
+				cVLNc = sVln.substring(0, y);
+				String sMd = sVln.substring(sVln.length() - 1, sVln.length());
+				sVln = sVln.substring(y + 1, sVln.length() - 2);
+
+				String cV = "";
+				if (sMd.equals("A")) {
+					if("CHN".equals(sVln)) {
+						countryCodes.add("86");
+					}else if("SGP".equals(sVln)) {
+						countryCodes.add("65");
+					}else if("THA".equals(sVln)) {
+						countryCodes.add("66");
+					}else if("IDN".equals(sVln)) {
+						countryCodes.add("62");
+					}
+				}
+			}
+			*/
+			//目前供裝的countryCode
+			for(String countryCode :countryCodes) {
+				//是否在應給予的優惠項目中
+				for(Map<String,String> discountMap : discountList) {
+					boolean isDiscountCountry = false;
+					for(String pCountryCode : discountMap.get("PARAMETER").trim().split(",")) {
+						//如果在此優惠項目的國家中
+						if(pCountryCode.equals(countryCode)) {
+							//取得用戶的目前的此項目優惠
+							Map<String,String> userDiscountMap = userItemMap.get(discountMap.get("DISCOUNT_ID"));
+							//目前沒使用者優惠，需增加
+							if(userDiscountMap == null) {
+								
+								String startTime = getStartTime(discountMap.get("ACTIVE_TIME"));
+								String endTime = getEndTime(startTime, discountMap.get("PERIOD"));
+								
+								sSql = "insert into TAPOUT_DISCOUNT_USER "
+										+ "(SERVICEID,DISCOUNT_ID,LEFT_AMOUNT,START_TIME,END_TIME,REMARK) " + 
+										"values"
+										+ "("+serviceid+",'"+discountMap.get("DISCOUNT_ID")+"',"+discountMap.get("USAGE")+","
+												+ "'"+startTime+"','"+endTime+"','"+countryCode+"') ";
+								
+								logger.info("insert new user discount:"+sSql);
+								
+								s2t.Update(sSql);
+								//放入UserMap待處理
+								Map<String,String> mm = new HashMap<String,String>();
+								mm.put("LEFT_AMOUNT", discountMap.get("USAGE"));	
+								mm.put("USED_AMOUNT", "0");	
+								mm.put("REMARK", countryCode);	
+								userItemMap.put(discountMap.get("DISCOUNT_ID"), mm);
+								
+							}else {
+							//確認用戶是否已經擁有此優惠
+								String remark = userDiscountMap.get("REMARK");
+								boolean hadDiscount = false;
+								for(String uCountryCode : remark.split(",")) {
+									if(countryCode.equals(uCountryCode)) {
+										hadDiscount = true;
+										break;
+									}
+								}
+								//如果國家還沒給予此項目優惠，需增加金額
+								if(!hadDiscount) {
+									sSql = "update TAPOUT_DISCOUNT_USER A "
+											+ "set LEFT_AMOUNT = LEFT_AMOUNT+"+discountMap.get("USAGE")+",remark = remark||',"+countryCode+"' "
+											+ "where DISCOUNT_ID = '"+discountMap.get("DISCOUNT_ID")+"' "
+											+ "and serviceid = "+serviceid+" "
+											+ "and to_date(A.START_TIME ,'yyyyMMddhh24miss') <sysdate "
+											+ "and (A.END_TIME is null or sysdate <to_date(A.END_TIME ,'yyyyMMddhh24miss') ) ";
+									
+									logger.info("update user discount:"+sSql);
+
+									s2t.Update(sSql);
+								}
+							}	
+							//已處理完此供裝號優惠
+							isDiscountCountry = true;
+							break;
+						}		
+					}
+					//此國家優惠已處理完成，換下個供裝號國家
+					if(isDiscountCountry)
+						break;
+				}
+			}	
+		}
+	}
+	
+	SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+	SimpleDateFormat sdf2 = new SimpleDateFormat("yyyyMMdd");
+	
+	//取得優惠開始時間
+	public String getStartTime(String activeTime) throws Exception {
+		String startTime = null;
+		
+		//null 為立即生效
+		if(activeTime ==null) {
+			startTime = sdf2.format(new Date())+"000000";
+		}else if(activeTime.matches("\\d{14}")){
+			startTime = activeTime;
+		}else if("nextMonth".equalsIgnoreCase(activeTime)){
+			startTime = sdf.format(getNextMonthFirstDay(new Date()));
+		}else {	
+			throw new Exception("Got undefined activeTime("+activeTime+").");
+		}
+		return startTime;
+	}
+	
+	public Date getNextMonthFirstDay(Date startTime) {
+		//定義monthly，為整個月份
+		Calendar c = Calendar.getInstance();
+		c.setTime(startTime);
+		c.set(Calendar.HOUR_OF_DAY, 0);
+		c.set(Calendar.MINUTE, 0);
+		c.set(Calendar.SECOND, 0);
+		//取得下個月第一天 00:00:00
+		c.set(Calendar.DAY_OF_MONTH, c.getActualMaximum(Calendar.DAY_OF_MONTH));
+		c.set(Calendar.DAY_OF_YEAR, c.get(Calendar.DAY_OF_YEAR)+1);
+		return c.getTime();
+	}
+	
+	//取得優惠結束時間
+	public String getEndTime(String startTime,String period) throws Exception {
+		String endTime = null;
+		if("monthly".equalsIgnoreCase(period)) {
+			endTime = sdf.format(getNextMonthFirstDay(sdf.parse(startTime)));
+		}else if(period.matches("\\d+")){
+			//如果period為純數字(天數)
+			int days = Integer.parseInt(period);
+			Calendar c = Calendar.getInstance();
+			c.setTime(sdf.parse(startTime));
+			c.set(Calendar.DAY_OF_YEAR, c.get(Calendar.DAY_OF_YEAR)+days+1);
+			c.set(Calendar.HOUR_OF_DAY, 0);
+			c.set(Calendar.MINUTE, 0);
+			c.set(Calendar.SECOND, 0);	
+			endTime = sdf.format(c.getTime());
+		}else {
+			throw new Exception("Got undefined period("+period+").");
+		}
+		//System.out.println(endTime);
+		return endTime;
 	}
 
 	public void ReRunStatus_07(PrintWriter out7) throws SQLException,
@@ -1961,7 +2228,8 @@ public class TWNLDprovision extends HttpServlet {
 				+ "SERVICE_ORDER_NBR='" + cServiceOrderNBR + "'";
 		s2t.Update(sSql);
 		logger.debug("update SERVICE_ORDER:" + sSql);
-		Query_PreProcessResult(out17, "000");
+		if(out17!=null) 
+			Query_PreProcessResult(out17, "000");
 		Query_GPRSStatus();
 
 	}
@@ -2090,20 +2358,20 @@ public class TWNLDprovision extends HttpServlet {
 
 							if (!cS2TMSISDN.equals("")) {
 								sSql = "";
-								// 20150915 直接將狀態更改成最終狀態，跳過FileToProvision的處理
-								sWSFStatus = "O";
-								sWSFDStatus = "I";
-								actionD = null;
-								actionA = null;
+								
+								
 								for (Map<String, String> m : cAddonItem) {
 									cAddonCode = m.get("AddonCode");
 									cAddonAction = m.get("AddonAction");
+									
+									// 20150915 直接將狀態更改成最終狀態，跳過FileToProvision的處理
+									sWSFStatus = "O";
+									sWSFDStatus = "I";
 
 									Process_SyncFile(sWSFStatus);
 									Process_SyncFileDtl(sWSFDStatus);
 									Process_ServiceOrder();
 									Process_WorkSubcode();
-
 									// 20150812 add
 									action_18();
 								}
@@ -2230,6 +2498,50 @@ public class TWNLDprovision extends HttpServlet {
 
 					s2t.Inster(sSql);
 					logger.debug("Inser into ADDONSERVICE_N:" + sSql);
+					
+					//20171222 add
+					//確認最後中華供裝狀態
+					sSql = "select content " + 
+							"from provlog " + 
+							"where content like '%Req_Status=17%' and content like '%TWNLD_MSISDN="+cTWNLDMSISDN+"%' " + 
+							"order by REQTIME DESC ";
+					
+					ResultSet rs4 = s2t.Query(sSql);
+					
+					String provContent = null;
+					if(rs4.next()) {
+						provContent = rs4.getString("content");
+					}
+					
+					rs4.close();
+					
+					//最後中華供裝開啟數據
+					if( provContent!=null &&  provContent.indexOf("GPRS_Status=1")!=-1) {
+						//確認目前數據狀態
+						Query_GPRSStatus();
+						//如果數據在關閉狀態，進行開啟
+						if("0".equals(cGPRS)) {
+							//如果數據在關閉狀態，進行開啟，以17的方式
+							cReqStatus = "17";
+							cGPRSStatus = "1";
+							Check_Type_Code_87_MAP_VALUE(cS2TMSISDN);
+							sWSFStatus = "V";
+							sWSFDStatus = "V";
+							Process_SyncFile(sWSFStatus);
+							Process_SyncFileDtl(sWSFDStatus);
+							Process_ServiceOrder();
+							// Process_WorkSubcode();
+							Process_WorkSubcode_05_17(cS2TIMSI, cTWNLDIMSI, cReqStatus,
+									cTWNLDMSISDN);
+							sSql = "update S2T_TB_SERVICE_ORDER set STATUS='N' where "
+									+ "SERVICE_ORDER_NBR='" + cServiceOrderNBR + "'";
+							s2t.Update(sSql);
+							logger.debug("update SERVICE_ORDER:" + sSql);	
+							cReqStatus = "18";
+						}
+					}
+					
+					
 
 				} else {
 					Send_AlertMail("Insert AddonService_N error. Still have service. SQL:"
@@ -2598,8 +2910,9 @@ public class TWNLDprovision extends HttpServlet {
 			logger.debug("ReqStatus[05]:" + sSql);
 			s2t.Update(sSql);
 		} else if (cReqStatus.equals("07")) {
+			
 			SMS07();
-
+			
 			TempRt = null;
 
 			sSql = "SELECT b.countryinit||a.vln as ab FROM vlnnumber a, "
@@ -2873,8 +3186,48 @@ public class TWNLDprovision extends HttpServlet {
 			//VARREALMSG = "";
 			cAddonCode = m.get("AddonCode");
 			cAddonAction = m.get("AddonAction");
-
+			
+			String addMsgId = "";
+			String delMsgId = "";;
 			if (cAddonCode.equals("SX001")) {
+				// PACKAGE = "香港上網包";
+				PACKAGE = "香港華人上網包";
+				// PAYMENT = "NTD599";
+				
+				addMsgId = "1181";
+				delMsgId = "1180";
+				
+			} else if (cAddonCode.equals("SX002")) {
+				// PACKAGE = "香港+大陸上網包";
+				//PACKAGE = "香港+大陸華人上網包";
+				PACKAGE = "華人上網包(中國+香港)";
+				// PAYMENT = "NTD999";
+				
+				addMsgId = "1182";
+				delMsgId = "1183";
+			} else if (cAddonCode.equals("SX003")) {
+				addMsgId = "703";
+				delMsgId = "707";
+			} else if (cAddonCode.equals("SX004")) {
+				addMsgId = "110";
+				delMsgId = "111";
+			}else if (cAddonCode.equals("SX005")) {
+				PACKAGE = "高量華人上網包(中國+香港)";
+				addMsgId = "1182";
+				delMsgId = "1183";
+			}
+			
+			if (cAddonAction.equals("A")) {
+				for(String s:getSMSMsg(addMsgId, new String[]{PACKAGE})){
+					send_SMS(s,SMS_Delay_Time);
+				}
+			} else if(cAddonAction.equals("D")){
+				for(String s:getSMSMsg(delMsgId, new String[]{PACKAGE})){
+					send_SMS(s,SMS_Delay_Time);
+				}
+			}
+
+			/*if (cAddonCode.equals("SX001")) {
 				// PACKAGE = "香港上網包";
 				PACKAGE = "香港華人上網包";
 				// PAYMENT = "NTD599";
@@ -2882,16 +3235,20 @@ public class TWNLDprovision extends HttpServlet {
 				// PACKAGE = "香港+大陸上網包";
 				PACKAGE = "香港+大陸華人上網包";
 				// PAYMENT = "NTD999";
-			}
+			}*/
 
 
-			if (cAddonAction.equals("A")) {
+			/*if (cAddonAction.equals("A")) {
 				if(!"".equals(PACKAGE)){
 					for(String s:getSMSMsg("1181", new String[]{PACKAGE})){
 						send_SMS(s,SMS_Delay_Time);
 					}
 				}else if(cAddonCode.equals("SX003")){
 					for(String s:getSMSMsg("703", null)){
+						send_SMS(s,SMS_Delay_Time);
+					}
+				}else if(cAddonCode.equals("SX004")){
+					for(String s:getSMSMsg("110", null)){
 						send_SMS(s,SMS_Delay_Time);
 					}
 				}
@@ -2904,8 +3261,12 @@ public class TWNLDprovision extends HttpServlet {
 					for(String s:getSMSMsg("707", null)){
 						send_SMS(s,SMS_Delay_Time);
 					}
+				}else if(cAddonCode.equals("SX004")){
+					for(String s:getSMSMsg("111", null)){
+						send_SMS(s,SMS_Delay_Time);
+					}
 				}
-			}	
+			}	*/
 		}
 	}
 
@@ -3161,11 +3522,22 @@ public class TWNLDprovision extends HttpServlet {
 			} else if ("M_GPRS".equals(TeRtA.getString("MAP_VALUE"))) {
 				sValue = cGPRSStatus;
 			}
+			// 20180104 add
+			else if("M_4Ggid".equalsIgnoreCase(TeRtA.getString("MAP_VALUE"))){
+				if("".equals(cGPRSStatus)) sValue = "";
+				else if("1".equals(cGPRSStatus)) sValue = "8";
+				else sValue = "1";
+			}
 			// 20150522 add
 			else if ("cGPRS".equals(TeRtA.getString("MAP_VALUE"))) {
 				sValue = cGPRS;
 			}
-
+			// 20180104 add
+			else if("c_4Ggid".equalsIgnoreCase(TeRtA.getString("MAP_VALUE"))){
+				if("".equals(cGPRS)) sValue = "";
+				else if("1".equals(cGPRS)) sValue = "8";
+				else sValue = "1";
+			}
 			else if ("M_CTYPE".equals(TeRtA.getString("MAP_VALUE"))) {
 				sValue = sM_CTYPE;
 			} else if ("FMTH".equals(TeRtA.getString("MAP_VALUE"))) {
@@ -3864,23 +4236,23 @@ public class TWNLDprovision extends HttpServlet {
 
 	}
 	
-	public static void readTxt(){
+	public static Map<String,String> readTxt(){
 		BufferedReader reader = null;
 		String str = null;
+		Map<String,String> m = new HashMap<String,String>();
 		try {
 			String path = TWNLDprovision.class.getResource("").getPath();
 			System.out.println("path:"+path);
 			String filePath = path+"excludeNumbers.txt";
 			
 			reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), "UTF-8"));
-			excludeTWNLDNUMBER.clear();
 			while ((str = reader.readLine()) != null) {
 				String s=str.trim();
-				String[] numbers = s.split("\t");
+				String[] numbers = s.split(",");
 				
 				if(numbers.length>=2){
 					System.out.println(numbers[0]+","+numbers[1]);
-					excludeTWNLDNUMBER.put(numbers[0], numbers[1]);	
+					m.put(numbers[0], numbers[1]);	
 				}
 			}
 		} catch (UnsupportedEncodingException e) {
@@ -3897,12 +4269,17 @@ public class TWNLDprovision extends HttpServlet {
 				}
 			}
 		}
+		return m;
 	}
 
 	static //20160321 add
-	Map<String,String> excludeTWNLDNUMBER = new HashMap<String,String>();
+	
 	public void checkExcludeNumber(String twnldMsisdn) {
 		logger.info("checkExcludeNumber");
+		//20160623 add
+		//read File
+		
+		Map<String,String> excludeTWNLDNUMBER = readTxt();
 		//if in list then set cS2TMSISDN to new Number and exit function
 		if(excludeTWNLDNUMBER.containsKey(twnldMsisdn)){
 			cS2TMSISDN = excludeTWNLDNUMBER.get(twnldMsisdn);
@@ -3920,12 +4297,14 @@ public class TWNLDprovision extends HttpServlet {
 			}
 		}
 	}
-	
+	//20171221 add
+	boolean isExcludeNumber = false;
 	// Select S2T_MSISDN
 	public void Find_AvailableS2TMSISDN() throws SQLException, IOException {
 		Temprs = null;
 		cS2TMSISDN = null;
-		//checkExcludeNumber(cTWNLDMSISDN);
+		isExcludeNumber = false;
+		checkExcludeNumber(cTWNLDMSISDN);
 		if(cS2TMSISDN==null || "".equals(cS2TMSISDN) || cS2TMSISDN.equals("null")){
 			sSql = "Select case when count(min(s2tmsisdn))=0 then 'null' else min(s2tmsisdn) "
 					+ "end as ab From availableMSISDN Where mnosubcode='"
@@ -3936,6 +4315,9 @@ public class TWNLDprovision extends HttpServlet {
 			while (Temprs.next()) {
 				cS2TMSISDN = Temprs.getString("ab");
 			}
+		}else {
+			//20171221 add
+			isExcludeNumber = true;
 		}
 
 		if (!cS2TMSISDN.equals("null")) {
@@ -5445,7 +5827,10 @@ public class TWNLDprovision extends HttpServlet {
 	public void ErrorHandle(Exception e) {
 		StringWriter s = new StringWriter();
 		e.printStackTrace(new PrintWriter(s));
-		logger.error(e);
+		if(logger!=null)
+			logger.error(e);
+		else
+			System.out.print(s.toString());
 		Send_AlertMail(s.toString());
 	}
 
@@ -5587,18 +5972,6 @@ public class TWNLDprovision extends HttpServlet {
 					+ "' And s2tmsisdn='" + cS2TMSISDN + "'";
 			logger.debug("Change_availableMSISDN(X):" + sSql);
 			s2t.Update(sSql);
-			
-			//20160323 add
-			if(excludeTWNLDNUMBER.containsKey(cTWNLDMSISDN)){
-				excludeTWNLDNUMBER.remove(cTWNLDMSISDN);
-				cS2TMSISDN = "";
-				try {
-					s2t.SendAlertMail(s2tconf.getProperty("mailserver"), s2tconf.getProperty("From"), s2tconf.getProperty("RDGroup"), 
-							"The GIGABYTE number "+cTWNLDMSISDN+"  is mapping to an inefficient msisdn.", "The GIGABYTE number "+cTWNLDMSISDN+"  is mapping to an inefficient msisdn.");
-				} catch (Exception ex) {
-					logger.error("JAVA Error:" + ex.toString());
-				}
-			}
 		}
 		return Scm;
 	}
@@ -5907,7 +6280,8 @@ public class TWNLDprovision extends HttpServlet {
 				
 				if(param!=null && param.length>0){
 					for(int i = 0;i<param.length ;i++){
-						m = m.replace("{{"+i+"}}", param[i]);
+						if(!"".equals(param[i]))
+							m = m.replace("{{"+i+"}}", param[i]);
 					}
 				}				
 				msg.add(m);
