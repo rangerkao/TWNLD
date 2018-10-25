@@ -142,12 +142,20 @@ public class TWNLDprovision extends HttpServlet {
 
 	//固態初始化
 	static{
-		setUnsendSMS();
+
+		Timer t = new Timer();
+		t.schedule(new wacher(), 0,10*60*1000);
 	}
 	
 	
-	private static void setUnsendSMS() {
-		
+	static class wacher extends  TimerTask{
+
+		@Override
+		public void run() {
+			if(logger!=null) {
+				logger.info("Time logger...");
+			}
+		}
 	}
 
 	/**
@@ -177,7 +185,7 @@ public class TWNLDprovision extends HttpServlet {
 		}
 	}
 
-	public static Connection connDB(Logger logger, String DriverClass,
+	/*public static Connection connDB(Logger logger, String DriverClass,
 			String URL, String UserName, String PassWord)
 			throws ClassNotFoundException, SQLException {
 		// logger.debug("Start to connect DB ");
@@ -190,7 +198,7 @@ public class TWNLDprovision extends HttpServlet {
 
 		return conn;
 	}
-
+*/
 	private boolean checkAddonCode(String code) {
 		String regex = "^sx\\d{3}$";
 
@@ -564,7 +572,6 @@ public class TWNLDprovision extends HttpServlet {
 							ReRunStatus_18(out);
 							break;
 						case 99:
-
 							ReRunStatus_99(out);
 							break;
 						default:
@@ -625,15 +632,15 @@ public class TWNLDprovision extends HttpServlet {
 				//Send_AlertMail();
 */				
 				//20180117 add
-				String rcode = "601";
+				cRCode = "601";
 				//cRCode = rcode;
-				logger.info("Return_Code:" + rcode);
+				logger.info("Return_Code:" + cRCode);
 				out.println("<Return_Code>");
-				out.println(rcode);
+				out.println(cRCode);
 				out.println("</Return_Code>");
 				out.println("<Return_DateTime>");
 
-				sreturnXml = sreturnXml + "<Return_Code>" + rcode
+				sreturnXml = sreturnXml + "<Return_Code>" + cRCode
 						+ "</Return_Code><Return_DateTime>";
 
 				out.println(s2t.Date_Format() + s2t.Date_Format_Time());
@@ -686,11 +693,63 @@ public class TWNLDprovision extends HttpServlet {
 					}
 				}
 			}
+			
+			
+			out.close();
+			
+			
+			//20181025 add
+			//回中華後的處理
+			
+			if( "18".equals(cReqStatus)) {
+				for (Map<String, String> m : cAddonItem) {
+					cAddonCode = m.get("AddonCode");
+					cAddonAction = m.get("AddonAction");
+					if("A".equals(cAddonAction)) {
+						checkCHTGPRSProvision();
+					}else if("D".equals(cAddonAction) && 
+							("SX007".equalsIgnoreCase(cAddonCode)||"SX008".equalsIgnoreCase(cAddonCode))) {
+						
+						sSql="SELECT B.SERVICEID, B.SERVICECODE, C.PDPSUBSID, C.PDPSUBSNAME "
+								+ "FROM PARAMETERVALUE A, SERVICE B, GPRSSUBSCRIPTION C "
+								+ "WHERE A.PARAMETERVALUEID=3749 AND A.SERVICEID=B.SERVICEID "
+								+ "AND B.STATUS IN (1,3) "
+								+ "AND A.VALUE=C.PDPSUBSID AND B.SERVICECODE = '"+cS2TMSISDN+"' ";
+						
+						Connection mboss = null;
+						Statement st = null;
+						ResultSet rs = null;
+						String gprsName = null;
+						try {
+							mboss = DriverManager.getConnection("jdbc:oracle:thin:@10.42.1.10:1521:orcl", "wacos", "ass");
+							st = mboss.createStatement();
+							logger.debug("Query GPRS name:"+sSql);
+							rs = st.executeQuery(sSql);
+							if(rs.next()) {
+								gprsName = rs.getString("PDPSUBSNAME");
+							}
+							
+							if(gprsName==null)
+								throw new Exception("Can't find GPRSName");
+							
+							if("".equalsIgnoreCase("")) {
+								//進行更改Roamming resstriction
+							}
+							
+						} catch (Exception e) {
+							Send_AlertMail("Can't query GPRS name");
+						}finally {
+							
+						}
+						
+						
+					}
+				}
+			}
+			
 			// 20150812 add
 			pre_SERVICE_ORDER_NBR = cServiceOrderNBR;
 			pre_WORK_ORDER_NBR = cWorkOrderNBR;
-
-			out.close();
 			vln.clear();
 			Tmpvln.clear();
 			s2tconf.clear();
@@ -703,10 +762,62 @@ public class TWNLDprovision extends HttpServlet {
 			 * 
 			 * t.setDaemon(true); t.start();
 			 */
+			
+			
 
 		}
 		// } //synchronized end
 
+	}
+	
+	public void checkCHTGPRSProvision() {
+		//20171222 add
+		//確認最後中華供裝狀態
+		sSql = "select content " + 
+				"from provlog " + 
+				"where content like '%Req_Status=17%' and content like '%TWNLD_MSISDN="+cTWNLDMSISDN+"%' " + 
+				"order by REQTIME DESC ";
+		ResultSet rs = null;
+		
+		try {
+			rs = s2t.Query(sSql);
+			String provContent = null;
+			if (rs.next()) {
+				provContent = rs.getString("content");
+			}
+			//最後中華供裝開啟數據
+			if (provContent != null && provContent.indexOf("GPRS_Status=1") != -1) {
+				//確認目前數據狀態
+				Query_GPRSStatus();
+				//如果數據在關閉狀態，進行開啟
+				if ("0".equals(cGPRS)) {
+					//如果數據在關閉狀態，進行開啟，以17的方式
+					cReqStatus = "17";
+					cGPRSStatus = "1";
+					Check_Type_Code_87_MAP_VALUE(cS2TMSISDN);
+					sWSFStatus = "V";
+					sWSFDStatus = "V";
+					Process_SyncFile(sWSFStatus);
+					Process_SyncFileDtl(sWSFDStatus);
+					Process_ServiceOrder();
+					// Process_WorkSubcode();
+					Process_WorkSubcode_05_17(cS2TIMSI, cTWNLDIMSI, cReqStatus, cTWNLDMSISDN);
+					sSql = "update S2T_TB_SERVICE_ORDER set STATUS='N' where " + "SERVICE_ORDER_NBR='"
+							+ cServiceOrderNBR + "'";
+					s2t.Update(sSql);
+					logger.debug("update SERVICE_ORDER:" + sSql);
+					cReqStatus = "18";
+				}
+			} 
+		} catch (Exception e) {
+			Send_AlertMail("CHECK CHT GPRS PROVISION ERROR.");
+		}finally {
+			if(rs!=null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {}
+			}
+		}
 	}
 
 	public class ThreadExample2 implements Runnable {
@@ -2359,25 +2470,45 @@ public class TWNLDprovision extends HttpServlet {
 							if (!cS2TMSISDN.equals("")) {
 								sSql = "";
 								
-								
+								String error = null;
+					
 								for (Map<String, String> m : cAddonItem) {
 									cAddonCode = m.get("AddonCode");
 									cAddonAction = m.get("AddonAction");
 									
+									if("SX003".equalsIgnoreCase(cAddonCode) &&
+											"A".equalsIgnoreCase(cAddonAction)) {
+										
+										error = "423";
+										break;
+									}
+									
+									//20150812 add
+									//20181025 add 要對中華踢錯，所以把步驟一到前面
+									error = action_18();
+					
+								}
+								
+								if(error == null) {
 									// 20150915 直接將狀態更改成最終狀態，跳過FileToProvision的處理
 									sWSFStatus = "O";
 									sWSFDStatus = "I";
-
+									
 									Process_SyncFile(sWSFStatus);
 									Process_SyncFileDtl(sWSFDStatus);
 									Process_ServiceOrder();
 									Process_WorkSubcode();
-									// 20150812 add
-									action_18();
-								}
-								Query_PreProcessResult(out18, "000");
+									
+									Query_PreProcessResult(out18, "000");
 
-								// Query_AddonStatus();
+									// Query_AddonStatus();
+								}else {
+									iError = 1;
+									Query_PreProcessResult(out18, error);
+									if (!"".equals(iErrorMsg))
+										iErrorMsg += ",";
+									iErrorMsg += "Error Code "+error+"!";
+								}
 
 							} else {
 								iError = 1;
@@ -2421,8 +2552,185 @@ public class TWNLDprovision extends HttpServlet {
 			Query_PreProcessResult(out18, "111");
 		}
 	}
+	
+	//20181025 add
+	public String action_18() throws Exception {
+		
+		List<String> servicecodes = new ArrayList<String>();
+		
+		sSql = "select a.SERVICECODE "
+				+ "from  AddonService_n a "
+				+ "where a.status = 'A' "
+				+ "AND A.S2TIMSI='" + cS2TIMSI	+ "' " 
+				+ "AND A.MNOIMSI='" + cTWNLDIMSI + "' "
+				+ "";
+		
+		ResultSet rs = null;
+		try {
+			logger.debug("Query AddonService_N:" + sSql);
+			rs = s2t.Query(sSql);
+			while (rs.next()) {
+				servicecodes.add(rs.getString("SERVICECODE"));
+			} 
+		} finally {
+			if(rs!=null) {
+				try {rs.close();} catch (Exception e) {}
+			}
+		}
 
-	public void action_18() throws SQLException {
+		//刪除AddonService_N
+		sSql = "UPDATE ADDONSERVICE_N A SET A.STATUS ='D',A.ENDDATE = SYSDATE "
+				// 20151127 mod
+				+ "WHERE A.ENDDATE IS NULL and A.SERVICECODE ='"
+				+ cAddonCode
+				+ "' "
+				+ "AND A.S2TIMSI='"
+				+ cS2TIMSI
+				+ "' " // AND A.S2TMSISDN='"+cS2TMSISDN+"' "
+						// //20150914 mod
+				+ "AND A.MNOIMSI='"
+				+ cTWNLDIMSI
+				+ "' "
+				//20170113 del
+				//+ "AND A.MNOMSISDN='" + cTWNLDMSISDN +"' "
+				+ " ";
+		
+		//互斥處理
+		//SX001,SX002,SX004,SX005,SX007,SX008,彼此互斥
+		
+		
+		if ("A".equalsIgnoreCase(cAddonAction)) {
+			boolean provisionIncompatible = false;
+			boolean containIncompatible = false;
+			
+			//供裝請求為加裝具互斥特性的服務
+			if(	"SX001".equalsIgnoreCase(cAddonCode)||//華人上網包(香港) 
+					"SX002".equalsIgnoreCase(cAddonCode)||//華人上網包(香港+大陸) 
+					"SX004".equalsIgnoreCase(cAddonCode)||//多國上網包
+					"SX005".equalsIgnoreCase(cAddonCode)||//高量華人上網包
+					"SX007".equalsIgnoreCase(cAddonCode)||//中國輕量包(1G)
+					"SX008".equalsIgnoreCase(cAddonCode)||//中國輕量包(3G)
+					0==1) {
+				provisionIncompatible = true;
+			}
+			
+			//已啟用服務是否含有互斥特性的服務
+			if(	servicecodes.contains("SX001")||
+				servicecodes.contains("SX002")||
+				servicecodes.contains("SX004")||
+				servicecodes.contains("SX005")||
+				servicecodes.contains("SX007")||
+				servicecodes.contains("SX008")) {
+				containIncompatible = true;
+			}
+			
+			if(servicecodes.contains(cAddonCode)) {
+				//供裝已存在的服務
+				if("SX007".equalsIgnoreCase(cAddonCode)||"SX008".equalsIgnoreCase(cAddonCode)) {
+					//中國輕量包判斷是否增加Flag或啟用第二包
+					//是否對AddonService先D再A？
+				}else {
+					//郵件通知，內部報錯
+					Send_AlertMail("Add AddonService_N error. Still have service. cAddonCode:"+cAddonCode);
+				}
+			}else {
+				if(provisionIncompatible && containIncompatible) {
+					//發現供裝互斥的不相同項目
+					//因互斥踢錯，代碼待定義
+					return "";
+				}else {
+					//正常供裝
+					
+					//新增AddonService
+					sSql = "INSERT INTO ADDONSERVICE (REQUESTDATETIME,"
+							+ "MNOSUBCODE,MNOIMSI,MNOMSISDN,S2TIMSI,S2TMSISDN,"
+							+ "ADDONCODE,ADDONACTION,SENDDATETIME,DONEDATETIME"
+							+ ") VALUES (SYSDATE" + ",'950','" + cTWNLDIMSI + "','"
+							+ cTWNLDMSISDN + "','" + cS2TIMSI + "','" + cS2TMSISDN + "','"
+							+ cAddonCode + "','" + cAddonAction + "',null,null)";
+					
+					logger.debug("Inser into ADDONSERVICE:" + sSql);
+					s2t.Inster(sSql);
+					
+					
+					//取得Serviceid
+					String serviceid = null;
+					sSql = "SELECT A.SERVICEID ab "
+							+ "FROM SERVICE A,IMSI B,PARAMETERVALUE C "
+							+ "WHERE A.SERVICEID=B.SERVICEID AND A.SERVICECODE IS NOT NULL "
+							+ "AND B.SERVICEID=C.SERVICEID(+) AND C.PARAMETERVALUEID(+)=3748 "
+							+ "AND B.IMSI='" + cS2TIMSI + "' ";
+					logger.debug("select service ID :" + sSql);
+					rs = null;
+					rs = s2t.Query(sSql);
+					while (rs.next()) {
+						serviceid = rs.getString("ab");
+					}
+					// select seq id
+					String seqId = null;
+
+					sSql = "SELECT S2T_SQ_ADDONSERVICE_N.nextval ab from dual ";
+					logger.debug("select SEQ :" + sSql);
+					rs = null;
+					rs = s2t.Query(sSql);
+					if(rs.next()) {
+						seqId = rs.getString("ab");
+					}
+				
+					//新增AddonService_N
+					sSql = "INSERT INTO ADDONSERVICE_N(SEQ,MNOIMSI,MNOMSISDN,S2TIMSI,S2TMSISDN,SERVICECODE,STATUS,STARTDATE,SERVICEID) "
+							+ "VALUES("
+							+ seqId
+							+ ",'"
+							+ cTWNLDIMSI
+							+ "','"
+							+ cTWNLDMSISDN
+							+ "','"
+							+ cS2TIMSI
+							+ "','"
+							+ cS2TMSISDN
+							+ "','"
+							+ cAddonCode
+							+ "','A',SYSDATE," + serviceid + ")";
+					
+					logger.debug("Inser into ADDONSERVICE_N:" + sSql);
+					s2t.Inster(sSql);
+				}
+			}
+		}else if ("D".equalsIgnoreCase(cAddonAction)) {
+			if(!servicecodes.contains(cAddonCode)) {
+				//要刪除不存在的服務，郵件通知，內部報錯
+				Send_AlertMail("Delete AddonService_N error. No service. cAddonCode:"+cAddonCode);
+			}else {
+				if("SX007".equalsIgnoreCase(cAddonCode)||"SX008".equalsIgnoreCase(cAddonCode)) {
+					//退中國輕量包時檢查Roamming restiction，如果是被限制的值，改回
+					
+				}
+				//正常退裝
+				sSql = "UPDATE ADDONSERVICE_N A SET A.STATUS ='D',A.ENDDATE = SYSDATE "
+						// 20151127 mod
+						+ "WHERE A.ENDDATE IS NULL and A.SERVICECODE ='"
+						+ cAddonCode
+						+ "' "
+						+ "AND A.S2TIMSI='"
+						+ cS2TIMSI
+						+ "' " // AND A.S2TMSISDN='"+cS2TMSISDN+"' "
+								// //20150914 mod
+						+ "AND A.MNOIMSI='"
+						+ cTWNLDIMSI
+						+ "' "
+						//20170113 del
+						//+ "AND A.MNOMSISDN='" + cTWNLDMSISDN +"' "
+						+ " ";
+				logger.debug("Update ADDONSERVICE_N:" + sSql);
+				s2t.Update(sSql);
+				
+			}
+		}
+		return null;
+	}
+
+	/*public String action_18() throws SQLException {
 		sSql = "INSERT INTO ADDONSERVICE (REQUESTDATETIME,"
 				+ "MNOSUBCODE,MNOIMSI,MNOMSISDN,S2TIMSI,S2TMSISDN,"
 				+ "ADDONCODE,ADDONACTION,SENDDATETIME,DONEDATETIME"
@@ -2578,7 +2886,8 @@ public class TWNLDprovision extends HttpServlet {
 		} catch (Exception e) {
 			ErrorHandle("AddonService_N error:" + sSql, e);
 		}
-	}
+		return null;
+	}*/
 
 	public void ReRunStatus_18(PrintWriter out18) throws SQLException,
 			IOException, ClassNotFoundException, Exception {
@@ -2983,7 +3292,7 @@ public class TWNLDprovision extends HttpServlet {
 	}
 
 	// 20151225 ADD
-	public void RCode_000sms() throws ClassNotFoundException, IOException,
+/*	public void RCode_000sms() throws ClassNotFoundException, IOException,
 			Exception {
 
 		if (cReqStatus.equals("00")) {
@@ -3000,7 +3309,7 @@ public class TWNLDprovision extends HttpServlet {
 		} else if (cReqStatus.equals("99")) {
 			SMS99();
 		}
-	}
+	}*/
 
 	public void SMS00() throws SQLException, UnsupportedEncodingException {
 
@@ -3194,8 +3503,10 @@ public class TWNLDprovision extends HttpServlet {
 				PACKAGE = "香港華人上網包";
 				// PAYMENT = "NTD599";
 				
-				addMsgId = "1181";
-				delMsgId = "1180";
+				//addMsgId = "1181";
+				//delMsgId = "1180";
+				addMsgId = "1182";
+				delMsgId = "1183";
 				
 			} else if (cAddonCode.equals("SX002")) {
 				// PACKAGE = "香港+大陸上網包";
@@ -3216,6 +3527,24 @@ public class TWNLDprovision extends HttpServlet {
 				addMsgId = "1182";
 				delMsgId = "1183";
 			}
+			//20180718 add
+			else if (cAddonCode.equals("SX006")) {
+				PACKAGE = "美國上網包";
+				addMsgId = "1182";
+				delMsgId = "1183";
+			}
+			//20181025 add
+			else if (cAddonCode.equals("SX007")) {
+				PACKAGE = "";
+				addMsgId = "";
+				delMsgId = "";
+			}
+			//20181025 add
+			else if (cAddonCode.equals("SX008")) {
+				PACKAGE = "";
+				addMsgId = "";
+				delMsgId = "";
+			}
 			
 			if (cAddonAction.equals("A")) {
 				for(String s:getSMSMsg(addMsgId, new String[]{PACKAGE})){
@@ -3226,47 +3555,6 @@ public class TWNLDprovision extends HttpServlet {
 					send_SMS(s,SMS_Delay_Time);
 				}
 			}
-
-			/*if (cAddonCode.equals("SX001")) {
-				// PACKAGE = "香港上網包";
-				PACKAGE = "香港華人上網包";
-				// PAYMENT = "NTD599";
-			} else if (cAddonCode.equals("SX002")) {
-				// PACKAGE = "香港+大陸上網包";
-				PACKAGE = "香港+大陸華人上網包";
-				// PAYMENT = "NTD999";
-			}*/
-
-
-			/*if (cAddonAction.equals("A")) {
-				if(!"".equals(PACKAGE)){
-					for(String s:getSMSMsg("1181", new String[]{PACKAGE})){
-						send_SMS(s,SMS_Delay_Time);
-					}
-				}else if(cAddonCode.equals("SX003")){
-					for(String s:getSMSMsg("703", null)){
-						send_SMS(s,SMS_Delay_Time);
-					}
-				}else if(cAddonCode.equals("SX004")){
-					for(String s:getSMSMsg("110", null)){
-						send_SMS(s,SMS_Delay_Time);
-					}
-				}
-			} else if (cAddonAction.equals("D")){
-				if(!"".equals(PACKAGE)){
-					for(String s:getSMSMsg("1180", new String[]{PACKAGE})){
-						send_SMS(s,SMS_Delay_Time);
-					}
-				}else if(cAddonCode.equals("SX003")){
-					for(String s:getSMSMsg("707", null)){
-						send_SMS(s,SMS_Delay_Time);
-					}
-				}else if(cAddonCode.equals("SX004")){
-					for(String s:getSMSMsg("111", null)){
-						send_SMS(s,SMS_Delay_Time);
-					}
-				}
-			}	*/
 		}
 	}
 
@@ -4446,6 +4734,7 @@ public class TWNLDprovision extends HttpServlet {
 			Temprs = null;
 			sSql = "Select countrycode from Countryinitial where countryinit='"
 					+ sVA + "'";
+			
 			Temprs = s2t.Query(sSql);
 			while (Temprs.next()) {
 				sCNN = Temprs.getString("countrycode");
@@ -4901,12 +5190,21 @@ public class TWNLDprovision extends HttpServlet {
 			Query_PreProcessResult(outA, "211");
 		}
 
-		sSql = "SELECT A.ADDONCODE,A.ADDONACTION,to_char(A.REQUESTDATETIME,'yyyymmddhh24miss') REQUESTDATETIME "
+		//20181012 改撈出還持有的，並多個串連
+		/*sSql = "SELECT A.ADDONCODE,A.ADDONACTION,to_char(A.REQUESTDATETIME,'yyyymmddhh24miss') REQUESTDATETIME "
 				+ "FROM ADDONSERVICE A "
 				+ "WHERE A.ADDONCODE != 'SX000' AND A.MNOMSISDN='"
 				+ cTWNLDMSISDN
 				+ "' AND ROWNUM<=1 "
-				+ "ORDER BY A.REQUESTDATETIME DESC";
+				+ "ORDER BY A.REQUESTDATETIME DESC";*/
+
+		sSql = "SELECT A.MNOMSISDN,wm_concat(A.SERVICECODE) SERVICECODE "
+				+ "FROM ADDONSERVICE_N A "
+				+ "WHERE A.SERVICECODE != 'SX000' "
+				+ "AND A.STATUS = 'A' "
+				+ "AND A.MNOMSISDN = '"+cTWNLDMSISDN+"' "
+				+ "group by  A.MNOMSISDN ";
+		
 		Temprs = s2t.Query(sSql);
 
 		String ccAddonCode = "", ccAddonAction = "", ccRequestDateTime = "";
@@ -4995,11 +5293,20 @@ public class TWNLDprovision extends HttpServlet {
 			Query_PreProcessResult(outA, "211");
 		}
 
-		sSql = "SELECT A.ADDONCODE,A.ADDONACTION,to_char(A.REQUESTDATETIME,'yyyymmddhh24miss') REQUESTDATETIME "
+		/*sSql = "SELECT A.ADDONCODE,A.ADDONACTION,to_char(A.REQUESTDATETIME,'yyyymmddhh24miss') REQUESTDATETIME "
 				+ "FROM ADDONSERVICE A "
 				+ "WHERE A.ADDONCODE != 'SX000' AND A.MNOIMSI='"
 				+ cTWNLDIMSI
-				+ "' AND ROWNUM<=1 " + "ORDER BY A.REQUESTDATETIME DESC";
+				+ "' AND ROWNUM<=1 " + "ORDER BY A.REQUESTDATETIME DESC";*/
+		
+		//20181012 改撈出還持有的，並多個串連
+		sSql = "SELECT A.MNOIMSI,wm_concat(A.SERVICECODE) SERVICECODE "
+				+ "FROM ADDONSERVICE_N A "
+				+ "WHERE A.SERVICECODE != 'SX000' "
+				+ "AND A.STATUS = 'A' "
+				+ "AND A.MNOIMSI = '"+cTWNLDIMSI+"' "
+				+ "group by  MNOIMSI";
+		
 		Temprs = s2t.Query(sSql);
 
 		String ccAddonCode = "", ccAddonAction = "", ccRequestDateTime = "";
@@ -5230,7 +5537,8 @@ public class TWNLDprovision extends HttpServlet {
 		s2t.Update(sSql);
 
 		// 20150812 add update except 107
-		if (!cWorkOrderNBR.equalsIgnoreCase(pre_WORK_ORDER_NBR)
+		if (!"".equals(cWorkOrderNBR) &&  null != cWorkOrderNBR 
+				&&!cWorkOrderNBR.equalsIgnoreCase(pre_WORK_ORDER_NBR)
 				&& !cServiceOrderNBR.equalsIgnoreCase(pre_SERVICE_ORDER_NBR)) {
 			logger.debug("Update S2T_TB_TYPB_WO_SYNC_FILE_DTL,S2T_TB_SERVICE_ORDER_ITEM,S2T_TB_SERVICE_ORDER time");
 			sSql = "update S2T_TB_TYPB_WO_SYNC_FILE_DTL set s2t_operationdate="
